@@ -1,10 +1,10 @@
 import sys # needed for sys.stop('error message')
 #local modules:
 from Basis import Basis1D
-from py_lapack import eigh # used to diagonalize hermitian and symmetric matricies
+#from py_lapack import eigh # used to diagonalize hermitian and symmetric matricies
 
 #python 2.7 modules
-from scipy.linalg import norm
+from scipy.linalg import norm, eigh
 from scipy.sparse import coo_matrix	# needed as the initial format that the Hamiltonian matrices are stored as
 from scipy.sparse import csr_matrix	# the final version the sparse matrices are stored as, good format for dot produces with vectors.
 from scipy.sparse.linalg  import eigsh	# needed for the sparse linear algebra packages
