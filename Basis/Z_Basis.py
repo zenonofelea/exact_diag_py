@@ -80,11 +80,14 @@ class Basis:
 		else: return s
 
 
-	def Op(self,J,st,opstr,indx):
-		s1=self.basis[st]
-		ME,s2=SpinOp(s1,opstr,indx)
-		stt=self.FindZstate(s2)
-		return [J*ME,st,stt]
+	def Op(self,J,opstr,indx):
+		ME_list=[]
+		for st in xrange(self.Ns):
+			s1=self.basis[st]
+			ME,s2=SpinOp(s1,opstr,indx)
+			stt=self.FindZstate(s2)
+			ME_list.append([J*ME,st,stt])
+		return ME_list
 
 
 

@@ -232,7 +232,7 @@ class PeriodicBasis1D(Basis):
 
 
 
-	def Op(self,J,st,opstr,indx):	
+	def Op(self,J,opstr,indx):	
 		# This function finds the matrix elemement and states which opstr creates
 		# after acting on an inputed state index.
 		#		J: coupling in front of opstr
@@ -241,51 +241,55 @@ class PeriodicBasis1D(Basis):
 		#		indx: a list of ordered indices which tell which operator in opstr live on the lattice.
 
 		if self.Kcon or self.Pcon or self.Zcon or self.PZcon: # if the user wants to use symmetries, special care must be taken [1]
-			s1=self.basis[st]
-			ME,s2=SpinOp(s1,opstr,indx)
-			s2,l,q=self.RefState(s2)
-			#print [s1,s2]
-			stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
-			#print [st,stt]
-			if stt >= 0:
-				if self.Kcon and self.Pcon:
-					"""
-					#semimomentum states k \neq 0,\pi #
-					#diagonal matrix elements: Eq. {13} in [1]
-					if st>1 and (self.basis[st]==self.basis[st-1]):
-						0
-					elif st<self.Ns and (self.basis[st]==self.basis[st+1]):
-						n=2
-					else:
-						n=1
-
-					#offdiagonal matrix elements Eq. {16} in [1]
-					if stt>1 and (self.basis[stt]==self.basis[stt-1]):
-						m=2; stt = stt-1;
-					elif stt<self.Ns and (self.basis[stt]==self.basis[stt+1]):
-						m=2
-					else:
-						m=1
-					for stt_j in xrange(stt, stt+m-1 + 1, 1):
+			ME_list=[]
+			for st in xrange(self.Ns):
+				s1=self.basis[st]
+				ME,s2=SpinOp(s1,opstr,indx)
+				s2,l,q=self.RefState(s2)
+				#print [s1,s2]
+				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
+				#print [st,stt]
+				if stt >= 0:
+					if self.Kcon and self.Pcon:
+						"""
+						#semimomentum states k \neq 0,\pi #
+						#diagonal matrix elements: Eq. {13} in [1]
+						if st>1 and (self.basis[st]==self.basis[st-1]):
+							0
+						elif st<self.Ns and (self.basis[st]==self.basis[st+1]):
+							n=2
+						else:
+							n=1
+	
+						#offdiagonal matrix elements Eq. {16} in [1]
+						if stt>1 and (self.basis[stt]==self.basis[stt-1]):
+							m=2; stt = stt-1;
+						elif stt<self.Ns and (self.basis[stt]==self.basis[stt+1]):
+							m=2
+						else:
+							m=1
+						for stt_j in xrange(stt, stt+m-1 + 1, 1):
 						for st_i in xrange(st, st+n-1 + 1, 1):
 							ME *= J*(sign(st)*self.pblock)**q*Nratios(st_i,stt_j) * helement(st_i,stt_j,l)
-					"""
-					sigma = sign(self.R[st])
-					#print [s1,s2]
-					#print [st,stt], [self.R[st],self.R[stt]]
-					#print self.Nasigma(st), self.Nasigma(stt)
-					#print self.helement(st,stt,l)
-					ME *= J*(sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt)/self.Nasigma(st)  ) ) * self.helement(st,stt,s1,s2,l)
-					#ME *= J*(sigma*self.pblock)**q*self.Nratios(st, stt) * self.helement(st,stt,l)
-				elif self.Kcon:
-					#check sign of 1j in teh exponential
-					#print [st,stt], [self.R[st],self.R[stt]]
-					ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
-			else:
-				ME=0.0;	stt=st
-			return [ME,st,stt]
+						"""
+						sigma = sign(self.R[st])
+						#print [s1,s2]
+						#print [st,stt], [self.R[st],self.R[stt]]
+						#print self.Nasigma(st), self.Nasigma(stt)
+						#print self.helement(st,stt,l)
+						ME *= J*(sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt)/self.Nasigma(st)  ) ) * self.helement(st,stt,s1,s2,l)
+						#ME *= J*(sigma*self.pblock)**q*self.Nratios(st, stt) * self.helement(st,stt,l)
+					elif self.Kcon:
+					
+						#check sign of 1j in teh exponential
+						#print [st,stt], [self.R[st],self.R[stt]]
+						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
+				else:
+					ME=0.0;	stt=st
+				ME_list.append([ME,st,stt])
+			return ME_list
 		else: # else, no special care is needed, just use the equivilant method from Basis class 
-			return Basis.Op(self,J,st,opstr,indx)
+			return Basis.Op(self,J,opstr,indx)
 		
 		
 

@@ -29,8 +29,8 @@ class Basis1D:
 	def RefState(self,s):
 		return self.B.RefState(s)
 
-	def Op(self,J,st,opstr,indx):
-		return self.B.Op(J,st,opstr,indx)
+	def Op(self,J,opstr,indx):
+		return self.B.Op(J,opstr,indx)
 
 
 

@@ -194,7 +194,7 @@ class OpenBasis1D(Basis):
 		return r,q,g,qg
 
 
-	def Op(self,J,st,opstr,indx):
+	def Op(self,J,opstr,indx):
 		# This function find the matrix elemement and state which opstr creates
 		# after acting on an inputed state index.
 		#		J: coupling in front of opstr
@@ -202,26 +202,29 @@ class OpenBasis1D(Basis):
 		#		opstr: string which contains a list of operators which  
 		#		indx: a list of ordered indices which tell which operator in opstr live on the lattice.
 		if self.Pcon or self.Zcon or self.PZcon: # if the user wants to use any symmetries, special care must be taken [1]
-			s1=self.basis[st]
-			ME,s2=SpinOp(s1,opstr,indx)
-			s2,q,g,qg=self.RefState(s2)
-			stt=self.FindZstate(s2)
-			#print st,int2bin(s1,self.L),int2bin(exchangeBits(s1,i,j),self.L), stt,int2bin(s2,self.L), q, g, [i,j]
-			if stt >= 0: 
-				if self.Pcon and self.Zcon:
-					ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.z**(g)
-				elif self.Pcon:
-					ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
-				elif self.Zcon:
-					ME *=  0.5*J*self.z**(g)
-				elif self.PZcon:
-					ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)		
-			else:
-				ME = 0.0
-				stt = st
-			return [ME,st,stt]	
+			ME_list=[]
+			for st in xrange(self.Ns):
+				s1=self.basis[st]
+				ME,s2=SpinOp(s1,opstr,indx)
+				s2,q,g,qg=self.RefState(s2)
+				stt=self.FindZstate(s2)
+				#print st,int2bin(s1,self.L),int2bin(exchangeBits(s1,i,j),self.L), stt,int2bin(s2,self.L), q, g, [i,j]
+				if stt >= 0: 
+					if self.Pcon and self.Zcon:
+						ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.z**(g)
+					elif self.Pcon:
+						ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
+					elif self.Zcon:
+						ME *=  0.5*J*self.z**(g)
+					elif self.PZcon:
+						ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)		
+				else:
+					ME = 0.0
+					stt = st
+				ME_list.append([ME,st,stt])	
+			return ME_list
 		else: # else just use method from parent class.
-			return Basis.Op(self,J,st,opstr,indx)
+			return Basis.Op(self,J,opstr,indx)
 
 
 

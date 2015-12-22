@@ -35,7 +35,6 @@ def StaticH(B,static,dtype):
 		to a csr_matrix class which has optimal sparse matrix vector multiplication.
 	"""
 	ME_list=[] # this is a list which stores the matrix elements as lists [[row,col,ME],...] for the whole hamiltonian. 
-	st=xrange(B.Ns) # iterator which loops over the index of the reference states of the basis B.
 	for i in xrange(len(static)): 
 		List=static[i]
 		opstr=List[0]
@@ -43,7 +42,7 @@ def StaticH(B,static,dtype):
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(map(lambda x:B.Op(J,x,opstr,indx),st))
+			ME_list.extend(B.Op(J,opstr,indx))
 
 	if static: # if static is not an empty list []:
 		# there is no way to tranpose a list so we must convert to array, this process will convert all parts of the list to the most compatible type.
@@ -84,7 +83,6 @@ def DynamicHs(B,dynamic,dtype):
 		Hamiltonian simply by looping over the tuple returned by this function. 
 	"""
 	Dynamic_Hs=[]
-	st=[ k for k in xrange(B.Ns) ]
 	for i in xrange(len(dynamic)):
 		ME_list=[]
 		List=dynamic[i]
@@ -93,7 +91,7 @@ def DynamicHs(B,dynamic,dtype):
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(map(lambda x:B.Op(J,x,opstr,indx),st))
+			ME_list.extend(B.Op(J,opstr,indx))
 	
 		ME_list=asarray(ME_list).T.tolist()
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1])
