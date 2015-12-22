@@ -9,7 +9,8 @@ class Basis1D:
 		# testing blocks for basis
 		if (type(kblock) is int):
 			if (type(zblock) is int) or (type(pblock) is int) or (type(pzblock) is int):
-				raise BasisError("Translation, spin inversion, and parity symmetries are not implimented at this time.")
+				#raise BasisError("Translation, spin inversion, and parity symmetries are not implimented at this time.")
+				self.B=PeriodicBasis1D(Length,Nup=Nup,kblock=kblock,pblock=pblock,zblock=zblock,pzblock=pzblock,a=a)
 			else:
 				self.B=PeriodicBasis1D(Length,Nup=Nup,kblock=kblock,a=a)
 		elif (type(zblock) is int) or (type(pblock) is int) or (type(pzblock) is int):
