@@ -117,7 +117,7 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=True
 			self.Pcon=True
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
-			self.R=vec('I') 
+			self.R=[]#vec('I') 
 			self.m=[]#vec('I')
 			self.basis=vec('L')
 
@@ -127,6 +127,7 @@ class PeriodicBasis1D(Basis):
 			else:
 				sigma_r = [-1,+1]
 				self.gk = 1
+			print 'get rid of gk! it doesnt matter since it cancels in sqrt{Nasigma/Nbsigma}'	
 			for s in zbasis:
 				r,m=CheckStateTP(kblock,L,s,T=a)
 				#print [r,m]
@@ -194,41 +195,50 @@ class PeriodicBasis1D(Basis):
 					r=t; l=i;
 		return r,l,q
 
-
-	def helement(self, st, stt, s1, s2, l):
+	print 'can gain speed by putting sigma as argument in the fns below:'
+	'''
+	def curlybracket_Eqs_151_152(self, st, stt, l): # {-bracket only from Eq. (151) and (152) from [1]
 		sigma = sign(self.R[st])
 		if sign(self.R[st]) == sign(self.R[stt]): #sigma-diagonal elements
-			if fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
+			#print [self.m[stt] < 0, fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L)]
+			if self.m[stt] <= 0: #fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
 				return cos(self.k*l)
 			else:
 				return (cos(self.k*l) + sigma*self.pblock*cos(self.k*(l-self.m[stt]))  )/(1 + sigma*self.pblock*cos(self.k*self.m[stt]) )
 		else:
-			if fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
+			if self.m[stt] <= 0: #fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
 				return -sigma*sin(self.k*l)
 			else:
 				return (-sigma*sin(self.k*l) + self.pblock*sin(self.k*(l-self.m[stt]))  )/(1 - sigma*self.pblock*cos(self.k*self.m[stt]) )
-
-	
-	def Nratios(self, st, stt): #Eq. (150) in [1], or sqrt( N_b^{-sigma}/ N_b^sigma )
-		if abs( sin(self.k) ) >= 1E-14: #if semimomentum states exist
-			sigma = sign(self.R[st])
-			if fliplr(stt,self.L) != shift(stt,-self.m[stt],self.L):
-				return 1.0
-			else:
-				return abs( sin(self.k*self.m[stt])) / ( 1.0 + sigma*self.pblock*cos(self.k*self.m[stt]) )
-		else:
-			return sqrt(float(self.R[st])/self.R[stt])
-
-	def Nasigma(self,st): #Eq. (144) from [1]
-		s1 = self.basis[st]
-		sigma = sign(self.R[st])
+	'''
+	def Nasigma(self,st,sigma): #Eq. (144) from [1]
+		#sigma = sign(self.R[st])
 		r = float( abs(self.R[st]) )
 		gk = float(self.gk)
-		t = fliplr(s1,self.L) #apply P
-		if self.m[st] >= 0:
-			return self.gk/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
-		else:
+		if self.m[st] <= 0:
 			return self.gk/r
+		else:
+			return self.gk/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
+
+
+	def helement(self, st, stt, l, q):
+		sigma = sign(self.R[st])
+
+		if sign(self.R[st]) == sign(self.R[stt]): #sigma-diagonal elements
+			Nratios = sqrt( float( self.Nasigma(stt,sigma)/self.Nasigma(st,sigma)  ) )
+			if self.m[stt] <= 0:
+				cb = cos(self.k*l) #curly bracket
+			else:
+				cb = (cos(self.k*l) + sigma*self.pblock*cos(self.k*(l-self.m[stt]))  )/(1 + sigma*self.pblock*cos(self.k*self.m[stt]) )
+		else: #sigma-offdiagonal elements
+			Nratios = sqrt( float( self.Nasigma(stt,-sigma)/self.Nasigma(st,sigma)  ) )
+			if self.m[stt] <= 0: #fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
+				cb = -sigma*sin(self.k*l)
+			else:
+				cb = (-sigma*sin(self.k*l) + self.pblock*sin(self.k*(l-self.m[stt]))  )/(1 - sigma*self.pblock*cos(self.k*self.m[stt]) )
+
+		return (sigma*self.pblock)**q*Nratios*cb
+		#return (sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt,sigma)/self.Nasigma(st,sigma)  ) ) * self.curlybracket_Eqs_151_152(st, stt, l)
 
 
 
@@ -243,50 +253,92 @@ class PeriodicBasis1D(Basis):
 		if self.Kcon or self.Pcon or self.Zcon or self.PZcon: # if the user wants to use symmetries, special care must be taken [1]
 			ME_list=[]
 			for st in xrange(self.Ns):
+				#print st
 				s1=self.basis[st]
-				ME,s2=SpinOp(s1,opstr,indx)
+				"""
+				if abs( sin(self.k) ) >= 1E-14: #if k \\neq 0, \pi
+					#diagonal matrix elements: Eq. {13} in [1]
+					if st>1 and (self.basis[st]==self.basis[st-1]):
+						#print 'skipped', st
+						continue # continue with next loop iteration
+					elif st<self.Ns and (self.basis[st]==self.basis[st+1]):
+						n=2
+					else:
+						n=1
+
+					#ME,s2=SpinOp(s1,opstr,indx)
+					Ez = 0; #need to sum up all diagonal operator strings in here
+					for i in xrange(st, st+n-1 +1, 1):
+						ME = ME + Ez
+				"""
+				#offdiagonal matrix elements
+				ME,s2=SpinOp(s1,opstr,indx); 
+				#print ME
+
 				s2,l,q=self.RefState(s2)
 				#print [s1,s2]
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
 				#print [st,stt]
 				if stt >= 0:
 					if self.Kcon and self.Pcon:
-						"""
-						#semimomentum states k \neq 0,\pi #
-						#diagonal matrix elements: Eq. {13} in [1]
-						if st>1 and (self.basis[st]==self.basis[st-1]):
-							0
-						elif st<self.Ns and (self.basis[st]==self.basis[st+1]):
-							n=2
+						#sigma = sign(self.R[st])
+
+						if abs( sin(self.k) ) <= 1E-14: # k = 0, pi
+							#ME *= J*(sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt)/self.Nasigma(st)  ) ) * self.curlybracket_Eqs_151_152(st, stt, l)
+							ME *= J*self.helement(st, stt, l, q)
+							ME_list.append([ME,st,stt])						
 						else:
-							n=1
-	
-						#offdiagonal matrix elements Eq. {16} in [1]
-						if stt>1 and (self.basis[stt]==self.basis[stt-1]):
-							m=2; stt = stt-1;
-						elif stt<self.Ns and (self.basis[stt]==self.basis[stt+1]):
-							m=2
-						else:
-							m=1
-						for stt_j in xrange(stt, stt+m-1 + 1, 1):
-						for st_i in xrange(st, st+n-1 + 1, 1):
-							ME *= J*(sign(st)*self.pblock)**q*Nratios(st_i,stt_j) * helement(st_i,stt_j,l)
-						"""
-						sigma = sign(self.R[st])
-						#print [s1,s2]
-						#print [st,stt], [self.R[st],self.R[stt]]
-						#print self.Nasigma(st), self.Nasigma(stt)
-						#print self.helement(st,stt,l)
-						ME *= J*(sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt)/self.Nasigma(st)  ) ) * self.helement(st,stt,s1,s2,l)
-						#ME *= J*(sigma*self.pblock)**q*self.Nratios(st, stt) * self.helement(st,stt,l)
+
+							# Eq. {13} in [1]
+							if (st>0) and (self.basis[st]==self.basis[st-1]):
+								#print 'skipped', st
+								continue # continue with next loop iteration
+							elif (st<self.Ns-1) and (self.basis[st]==self.basis[st+1]):
+								n=2
+							else:									
+								n=1
+							#ME,s2=SpinOp(s1,opstr,indx)
+							
+
+							if st == stt: #diagonal matrix elements:
+
+								Ez = 0; #need to sum up all diagonal operator strings in here						 
+								for st_i in xrange(st, st+n-1 +1, 1):
+									#print i, ME
+									#ME *= ME + Ez
+									#print 'after', ME
+									ME_list.append([ME+Ez,st_i,st_i])
+								#ME_list.append([ME,st,st])
+							else: #offdiagonal matrix elements Eq. {16} in [1]
+
+								#print '_______'
+
+								if (stt>0) and (self.basis[stt]==self.basis[stt-1]):
+									m=2; stt = stt-1;
+								elif (stt<self.Ns-1) and (self.basis[stt]==self.basis[stt+1]):
+									m=2
+								else:
+									m=1
+								for stt_j in xrange(stt, stt+m-1 + 1, 1):
+									#print m, [[stt,stt+m-1]], stt_j
+									for st_i in xrange(st, st+n-1 + 1, 1):
+										ME *= + J*self.helement(st_i, stt_j, l, q)
+										ME_list.append([ME,st_i,stt_j])
+										#print [ME,st_i,stt_j]
+										#print [st_i,stt_j], [ self.helement(st_i, stt_j, l, q), self.helement(stt_j, st_i, l, q) ]
+								
 					elif self.Kcon:
 					
 						#check sign of 1j in teh exponential
 						#print [st,stt], [self.R[st],self.R[stt]]
+
+						#Why is there *= operator below if we multiply by the matrix element J anyway? Same for the other ME's
 						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
+						ME_list.append([ME,st,stt])
 				else:
 					ME=0.0;	stt=st
-				ME_list.append([ME,st,stt])
+					ME_list.append([ME,st,stt])
+				#ME_list.append([ME,st,stt])
 			return ME_list
 		else: # else, no special care is needed, just use the equivilant method from Basis class 
 			return Basis.Op(self,J,opstr,indx)

@@ -169,10 +169,10 @@ class Hamiltonian1D:
 		if self.Static_H != None: # if there is a static Hamiltonian...
 			H=self.Static_H	
 			for ele in self.Dynamic_Hs:
-				H += ele[1]*ele[0](time)
+				H = H + ele[1]*ele[0](time)
 		else: # if there isn't...
 			for ele in self.Dynamic_Hs:
-				H += ele[1]*ele[0](time)
+				H = H + ele[1]*ele[0](time)
 
 		return H
 
