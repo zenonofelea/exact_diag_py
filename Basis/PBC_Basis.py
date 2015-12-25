@@ -64,6 +64,7 @@ def CheckStateTP(kblock,L,s,T=1):
 			if kblock % (L/i) != 0: # need to check the shift condition 
 				return R,m
 			R = i
+			#break
 			#print R,s
 			#return R,m
 			t = s
@@ -121,7 +122,7 @@ class PeriodicBasis1D(Basis):
 			self.m=[]#vec('I')
 			self.basis=vec('L')
 
-			if abs( sin(self.k) ) <= 1E-14:
+			if abs( sin(self.k) ) <= 1E-14: #picks up k = 0, pi modes
 				sigma_r = [+1]
 				self.gk = 2
 			else:
@@ -130,7 +131,7 @@ class PeriodicBasis1D(Basis):
 			print 'get rid of gk! it doesnt matter since it cancels in sqrt{Nasigma/Nbsigma}'	
 			for s in zbasis:
 				r,m=CheckStateTP(kblock,L,s,T=a)
-				#print [r,m]
+				#print [s,r,m]
 				#some redundancy: if r=-1 I guess we need not do the following
 				for sigma in sigma_r:
 					if m != -1:
@@ -138,6 +139,7 @@ class PeriodicBasis1D(Basis):
 							r = -1
 						if (sigma == -1) and (1 - sigma*pblock*cos(kblock*m*2*pi/L) != 0):
 							r = -1
+					#print [s,r,m,sigma]
 					if r>0:
 						#print [r,m], sigma*r
 						self.R.append(sigma*r)
@@ -155,7 +157,7 @@ class PeriodicBasis1D(Basis):
 			self.basis=vec('L')
 			for s in zbasis:
 				r=CheckStateT(kblock,L,s,T=a)
-				#print r
+				#print [s,r]
 				if r > 0:
 					self.R.append(r)
 					self.basis.append(s)
@@ -167,6 +169,7 @@ class PeriodicBasis1D(Basis):
 		print 'list basis vectors:'
 		for i in xrange(self.Ns):
 			print [self.basis[i],int2bin( self.basis[i] ,L)]
+		
 
 
 	def RefState(self,s):
@@ -195,22 +198,8 @@ class PeriodicBasis1D(Basis):
 					r=t; l=i;
 		return r,l,q
 
-	print 'can gain speed by putting sigma as argument in the fns below:'
-	'''
-	def curlybracket_Eqs_151_152(self, st, stt, l): # {-bracket only from Eq. (151) and (152) from [1]
-		sigma = sign(self.R[st])
-		if sign(self.R[st]) == sign(self.R[stt]): #sigma-diagonal elements
-			#print [self.m[stt] < 0, fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L)]
-			if self.m[stt] <= 0: #fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
-				return cos(self.k*l)
-			else:
-				return (cos(self.k*l) + sigma*self.pblock*cos(self.k*(l-self.m[stt]))  )/(1 + sigma*self.pblock*cos(self.k*self.m[stt]) )
-		else:
-			if self.m[stt] <= 0: #fliplr(s2,self.L) != shift(s2,-self.m[stt],self.L):
-				return -sigma*sin(self.k*l)
-			else:
-				return (-sigma*sin(self.k*l) + self.pblock*sin(self.k*(l-self.m[stt]))  )/(1 - sigma*self.pblock*cos(self.k*self.m[stt]) )
-	'''
+	
+
 	def Nasigma(self,st,sigma): #Eq. (144) from [1]
 		#sigma = sign(self.R[st])
 		r = float( abs(self.R[st]) )
@@ -220,7 +209,7 @@ class PeriodicBasis1D(Basis):
 		else:
 			return self.gk/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
 
-
+	print 'can gain speed by putting sigma as argument in helement below'
 	def helement(self, st, stt, l, q):
 		sigma = sign(self.R[st])
 
@@ -237,6 +226,7 @@ class PeriodicBasis1D(Basis):
 			else:
 				cb = (-sigma*sin(self.k*l) + self.pblock*sin(self.k*(l-self.m[stt]))  )/(1 - sigma*self.pblock*cos(self.k*self.m[stt]) )
 
+		#print 'helement:', (sigma*self.pblock)**q, Nratios, cb
 		return (sigma*self.pblock)**q*Nratios*cb
 		#return (sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt,sigma)/self.Nasigma(st,sigma)  ) ) * self.curlybracket_Eqs_151_152(st, stt, l)
 
@@ -255,29 +245,42 @@ class PeriodicBasis1D(Basis):
 			for st in xrange(self.Ns):
 				#print st
 				s1=self.basis[st]
-				"""
-				if abs( sin(self.k) ) >= 1E-14: #if k \\neq 0, \pi
-					#diagonal matrix elements: Eq. {13} in [1]
-					if st>1 and (self.basis[st]==self.basis[st-1]):
-						#print 'skipped', st
-						continue # continue with next loop iteration
-					elif st<self.Ns and (self.basis[st]==self.basis[st+1]):
-						n=2
-					else:
-						n=1
 
-					#ME,s2=SpinOp(s1,opstr,indx)
-					Ez = 0; #need to sum up all diagonal operator strings in here
-					for i in xrange(st, st+n-1 +1, 1):
-						ME = ME + Ez
-				"""
 				#offdiagonal matrix elements
 				ME,s2=SpinOp(s1,opstr,indx); 
-				#print ME
+				#print [ME]
 
 				s2,l,q=self.RefState(s2)
 				#print [s1,s2]
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
+
+				"""
+				if (abs( sin(self.k) ) >= 1E-14) and self.Pcon and self.Kcon: #if k \\neq 0, \pi
+					#diagonal matrix elements: Eq. {13} in [1]
+					if (st>0) and (self.basis[st]==self.basis[st-1]):
+						#print 'skipped', st
+						continue # continue with next loop iteration
+					elif (st<self.Ns-1) and (self.basis[st]==self.basis[st+1]):
+						n=2
+					else:									
+						n=1
+
+					ME,s2=SpinOp(s1,opstr,indx);	
+					s2,l,q=self.RefState(s2)
+					stt=self.FindZstate(s2)
+
+					if st == stt: #diagonal matrix elements:
+						 
+						Ez = 0; #need to sum up all diagonal operator strings in here						 
+						for st_i in xrange(st, st+n-1 +1, 1):
+							#ME *= ME + Ez
+							me = (J*self.helement(st_i, st_i, l, q) + Ez)*ME
+							ME_list.append([me,st_i,st_i])
+
+							#ME *= J*self.helement(st_i, st_i, l, q) + Ez
+							#ME_list.append([ME,st_i,st_i])
+
+				"""
 				#print [st,stt]
 				if stt >= 0:
 					if self.Kcon and self.Pcon:
@@ -288,7 +291,7 @@ class PeriodicBasis1D(Basis):
 							ME *= J*self.helement(st, stt, l, q)
 							ME_list.append([ME,st,stt])						
 						else:
-
+							
 							# Eq. {13} in [1]
 							if (st>0) and (self.basis[st]==self.basis[st-1]):
 								#print 'skipped', st
@@ -299,20 +302,39 @@ class PeriodicBasis1D(Basis):
 								n=1
 							#ME,s2=SpinOp(s1,opstr,indx)
 							
-
+							#print '_______'
+							
 							if st == stt: #diagonal matrix elements:
 
 								Ez = 0; #need to sum up all diagonal operator strings in here						 
 								for st_i in xrange(st, st+n-1 +1, 1):
-									#print i, ME
 									#ME *= ME + Ez
-									#print 'after', ME
-									ME_list.append([ME+Ez,st_i,st_i])
-								#ME_list.append([ME,st,st])
+									ME *= J*self.helement(st_i, st_i, l, q) + Ez
+									#ME_list.append([ME,st,st])
+									ME_list.append([ME,st_i,st_i])
+									#me = (J*self.helement(st_i, st_i, l, q) + Ez)*ME
+									#ME_list.append([me,st_i,st_i])
+									#print 'diag', [ME, J,self.helement(st_i, st_i, l, q)], [me,st_i,st_i]
 							else: #offdiagonal matrix elements Eq. {16} in [1]
 
-								#print '_______'
+								if (stt>0) and (self.basis[stt]==self.basis[stt-1]):
+									m=2; stt = stt-1;
+								elif (stt<self.Ns-1) and (self.basis[stt]==self.basis[stt+1]):
+									m=2
+								else:
+									m=1
+								for stt_j in xrange(stt, stt+m-1 +1, 1):
+									#print m, [[stt,stt+m-1]], stt_j
+									for st_i in xrange(st, st+n-1+1 , 1):
+										ME *= + J*self.helement(st_i, stt_j, l, q)
+										ME_list.append([ME,st_i,stt_j])
+										#me = (J*self.helement(st_i, stt_j, l, q) )*ME
+										#ME_list.append([me,st_i,stt_j])
+										#print 'offdiag', [ME, J,self.helement(st_i, stt_j, l, q)], [me,st_i,stt_j]
+							"""	
 
+							#offdiagonal matrix elements Eq. {16} in [1]
+							if st != stt:
 								if (stt>0) and (self.basis[stt]==self.basis[stt-1]):
 									m=2; stt = stt-1;
 								elif (stt<self.Ns-1) and (self.basis[stt]==self.basis[stt+1]):
@@ -326,7 +348,7 @@ class PeriodicBasis1D(Basis):
 										ME_list.append([ME,st_i,stt_j])
 										#print [ME,st_i,stt_j]
 										#print [st_i,stt_j], [ self.helement(st_i, stt_j, l, q), self.helement(stt_j, st_i, l, q) ]
-								
+							"""
 					elif self.Kcon:
 					
 						#check sign of 1j in teh exponential
@@ -337,6 +359,7 @@ class PeriodicBasis1D(Basis):
 						ME_list.append([ME,st,stt])
 				else:
 					ME=0.0;	stt=st
+					#print 'else', [ME,st,stt]
 					ME_list.append([ME,st,stt])
 				#ME_list.append([ME,st,stt])
 			return ME_list
