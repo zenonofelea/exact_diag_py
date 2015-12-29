@@ -80,6 +80,39 @@ def CheckStateTP(kblock,L,s,T=1):
 			return R,m
 
 
+def CheckStateTZ(kblock,L,s,T=1):
+	# this is a function defined in [1]
+	# It is used to check if the integer inputed is a reference state for a state with momentum k.
+	#		kblock: the number associated with the momentum (i.e. k=2*pi*kblock/L)
+	#		L: length of the system
+	#		s: integer which represents a spin config in Sz basis
+	#		T: number of sites to translate by, not 1 if the unit cell on the lattice has 2 sites in it.
+	t=s
+	R=-1
+	m = -1 
+	for i in xrange(1,L+1,T):
+		t = shift(t,-T,L)
+		if t < s:
+			return R,m
+		elif t==s:
+			if kblock % (L/i) != 0: # need to check the shift condition 
+				return R,m
+			R = i
+			break
+			#print R,s
+			#return R,m
+	t = s
+	t = flip_all(t,L)
+	for j in xrange(0,R):
+		if t < s:
+			R = -1
+			#print R,m
+			return R,m
+		elif t == s:
+			m = j
+			return R,m
+		t = shift(t,-T,L) 
+	return R,m
 
 
 # child class of Basis, this is the momentum conserving basis:
@@ -146,6 +179,31 @@ class PeriodicBasis1D(Basis):
 						self.m.append(m)	
 						self.basis.append(s)
 			self.Ns=len(self.basis)
+		elif type(kblock) is int and type(zblock) is int:
+			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
+			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
+			self.a=a
+			self.kblock=kblock
+			self.k=2*pi*a*kblock/L
+			self.zblock=zblock
+			self.Kcon=True
+			self.Zcon=True
+			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
+			self.R=[]#vec('I') 
+			self.m=[]#vec('I')
+			self.basis=vec('L')
+			for s in zbasis:
+				r,m=CheckStateTZ(kblock,L,s,T=a)
+				#print [s,r,m]
+				if m != -1:
+					if 1 + zblock*cos(self.k*m) == 0:
+						r=-1
+				if r>0:
+					#print [r,m], sigma*r
+					self.R.append(r)
+					self.m.append(m)	
+					self.basis.append(s)
+			self.Ns=len(self.basis)	
 		elif type(kblock) is int:
 			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			self.a=a
@@ -164,8 +222,12 @@ class PeriodicBasis1D(Basis):
 			self.Ns=len(self.basis)
 		else: 
 			self.Kcon=False # do not change symm to False since there may be Magnetization conservation.
+			self.Pcon=False
+			self.Zcon=False
 		
 		print 'R =', self.R
+		if self.Zcon:
+			print 'm =', self.m
 		print 'list basis vectors:'
 		for i in xrange(self.Ns):
 			print [self.basis[i],int2bin( self.basis[i] ,L)]
@@ -179,7 +241,7 @@ class PeriodicBasis1D(Basis):
 		# reference state.
 		# it returns r which is the reference state. l is the number of times the translation operator had to act.
 		# This information is needed to calculate the matrix element s between states in this basis [1].
-		t=s; r=s; l=0; q=0;
+		t=s; r=s; l=0; q=0; g=0; qg=0;
 		if self.Kcon and self.Pcon:
 			for i in xrange(1,self.L+1,self.a):
 				t=shift(t,-self.a,self.L)
@@ -190,13 +252,24 @@ class PeriodicBasis1D(Basis):
 			for i in xrange(1,self.L+1,self.a):
 				t=shift(t,-self.a,self.L)
 				if t<r:
-					r=t; l=i; q=1;		
+					r=t; l=i; q=1;	
+		elif self.Kcon and self.Zcon:
+			for i in xrange(1,self.L+1,self.a):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i;		
+			t = s;
+			t = flip_all(t,self.L)
+			for i in xrange(1,self.L+1,self.a):
+				t=shift(t,-self.a,self.L)
+				if t<r:
+					r=t; l=i; g=1;				
 		elif self.Kcon:
 			for i in xrange(1,self.L+1,self.a):
 				t=shift(t,-self.a,self.L)
 				if t < r:
 					r=t; l=i;
-		return r,l,q
+		return r,l,q,g,qg
 
 	
 
@@ -207,7 +280,14 @@ class PeriodicBasis1D(Basis):
 		if self.m[st] <= 0:
 			return self.gk/r
 		else:
-			return self.gk/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
+			return self.gk/r*(1 + sigma*self.zblock*cos(self.k*self.m[st]))
+
+	def NaTZ(self,st): #Eq. (154) from [1]
+		r = float( abs(self.R[st]) )
+		if self.m[st] <= 0:
+			return 2/r
+		else:
+			return 2/r*(1 + self.zblock*cos(self.k*self.m[st]))		
 
 	print 'can gain speed by putting sigma as argument in helement below'
 	def helement(self, st, stt, l, q):
@@ -250,7 +330,7 @@ class PeriodicBasis1D(Basis):
 				ME,s2=SpinOp(s1,opstr,indx); 
 				#print [ME]
 
-				s2,l,q=self.RefState(s2)
+				s2,l,q,g,qg=self.RefState(s2)
 				#print [s1,s2]
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
 
@@ -279,8 +359,8 @@ class PeriodicBasis1D(Basis):
 
 							#ME *= J*self.helement(st_i, st_i, l, q) + Ez
 							#ME_list.append([ME,st_i,st_i])
-
 				"""
+				
 				#print [st,stt]
 				if stt >= 0:
 					if self.Kcon and self.Pcon:
@@ -349,12 +429,21 @@ class PeriodicBasis1D(Basis):
 										#print [ME,st_i,stt_j]
 										#print [st_i,stt_j], [ self.helement(st_i, stt_j, l, q), self.helement(stt_j, st_i, l, q) ]
 							"""
+					elif self.Kcon and self.Zcon:
+					
+						#check sign of 1j in teh exponential
+						#print [st,stt], [self.m[st],self.R[st]],[self.NaTZ(st),self.NaTZ(stt)]
+						#print [self.R[stt],self.NaTZ(stt),self.m[stt],s2], [self.R[st],self.NaTZ(st),self.m[st],s1]
+
+						ME *= sqrt(float(self.NaTZ(stt)/self.NaTZ(st) ) )*J*self.zblock**g*exp(-1j*self.k*l)
+
+						
+						ME_list.append([ME,st,stt])		
 					elif self.Kcon:
 					
 						#check sign of 1j in teh exponential
 						#print [st,stt], [self.R[st],self.R[stt]]
 
-						#Why is there *= operator below if we multiply by the matrix element J anyway? Same for the other ME's
 						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])
 				else:

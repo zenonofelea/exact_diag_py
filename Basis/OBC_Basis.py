@@ -156,6 +156,7 @@ class OpenBasis1D(Basis):
 			self.Pcon=False
 			self.Zcon=False
 			self.PZcon=False
+	
 
 
 	def RefState(self,s):
