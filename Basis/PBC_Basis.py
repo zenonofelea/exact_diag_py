@@ -64,20 +64,18 @@ def CheckStateTP(kblock,L,s,T=1):
 			if kblock % (L/i) != 0: # need to check the shift condition 
 				return R,m
 			R = i
-			#break
-			#print R,s
-			#return R,m
-			t = s
-			t = fliplr(t,L)
-			for j in xrange(0,R):
-				if t < s:
-					R = -1
-					return R,m
-				elif t == s:
-					m = j
-					return R,m
-				t = shift(t,-T,L) 
+			break
+	t = s
+	t = fliplr(t,L)
+	for j in xrange(0,R):
+		if t < s:
+			R = -1
 			return R,m
+		elif t == s:
+			m = j
+			return R,m
+		t = shift(t,-T,L) 
+	return R,m
 
 
 def CheckStateTZ(kblock,L,s,T=1):
@@ -106,7 +104,6 @@ def CheckStateTZ(kblock,L,s,T=1):
 	for j in xrange(0,R):
 		if t < s:
 			R = -1
-			#print R,m
 			return R,m
 		elif t == s:
 			m = j
@@ -263,7 +260,20 @@ class PeriodicBasis1D(Basis):
 			for i in xrange(1,self.L+1,self.a):
 				t=shift(t,-self.a,self.L)
 				if t<r:
-					r=t; l=i; g=1;				
+					r=t; l=i; g=1;
+		elif self.Kcon and self.PZcon:
+			for i in xrange(1,self.L+1,self.a):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i;		
+			t = s;
+			t = flip_all(t,self.L)
+			t = fliplr(t,self.L)
+			for i in xrange(1,self.L+1,self.a):
+				t=shift(t,-self.a,self.L)
+				if t<r:
+					r=t; l=i; qg=1;	
+			print 'PZ refstate MAY NEED DEBUGGING'								
 		elif self.Kcon:
 			for i in xrange(1,self.L+1,self.a):
 				t=shift(t,-self.a,self.L)
@@ -280,7 +290,7 @@ class PeriodicBasis1D(Basis):
 		if self.m[st] <= 0:
 			return self.gk/r
 		else:
-			return self.gk/r*(1 + sigma*self.zblock*cos(self.k*self.m[st]))
+			return self.gk/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
 
 	def NaTZ(self,st): #Eq. (154) from [1]
 		r = float( abs(self.R[st]) )
@@ -386,14 +396,21 @@ class PeriodicBasis1D(Basis):
 							
 							if st == stt: #diagonal matrix elements:
 
-								Ez = 0; #need to sum up all diagonal operator strings in here						 
+								Ez = 0; #need to sum up all diagonal operator strings in here	
+								me = 0;					 
 								for st_i in xrange(st, st+n-1 +1, 1):
 									#ME *= ME + Ez
 									ME *= J*self.helement(st_i, st_i, l, q) + Ez
 									#ME_list.append([ME,st,st])
 									ME_list.append([ME,st_i,st_i])
-									#me = (J*self.helement(st_i, st_i, l, q) + Ez)*ME
-									#ME_list.append([me,st_i,st_i])
+									#print 'before:', me
+									#me = me + (J*self.helement(st_i, st_i, l, q) + Ez)*ME
+									#me = me + (J + Ez)*ME
+									#print 'after:', me
+								
+								#ME_list.append([me,st,st])
+								#print ME_list
+								#print '________'
 									#print 'diag', [ME, J,self.helement(st_i, st_i, l, q)], [me,st_i,st_i]
 							else: #offdiagonal matrix elements Eq. {16} in [1]
 
@@ -430,14 +447,7 @@ class PeriodicBasis1D(Basis):
 										#print [st_i,stt_j], [ self.helement(st_i, stt_j, l, q), self.helement(stt_j, st_i, l, q) ]
 							"""
 					elif self.Kcon and self.Zcon:
-					
-						#check sign of 1j in teh exponential
-						#print [st,stt], [self.m[st],self.R[st]],[self.NaTZ(st),self.NaTZ(stt)]
-						#print [self.R[stt],self.NaTZ(stt),self.m[stt],s2], [self.R[st],self.NaTZ(st),self.m[st],s1]
-
 						ME *= sqrt(float(self.NaTZ(stt)/self.NaTZ(st) ) )*J*self.zblock**g*exp(-1j*self.k*l)
-
-						
 						ME_list.append([ME,st,stt])		
 					elif self.Kcon:
 					
@@ -446,11 +456,13 @@ class PeriodicBasis1D(Basis):
 
 						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])
+				
 				else:
 					ME=0.0;	stt=st
 					#print 'else', [ME,st,stt]
 					ME_list.append([ME,st,stt])
 				#ME_list.append([ME,st,stt])
+
 			return ME_list
 		else: # else, no special care is needed, just use the equivilant method from Basis class 
 			return Basis.Op(self,J,opstr,indx)
