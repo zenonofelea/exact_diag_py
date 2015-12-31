@@ -160,15 +160,18 @@ class PeriodicBasis1D(Basis):
 				self.gk = 1
 			print 'get rid of gk! it doesnt matter since it cancels in sqrt{Nasigma/Nbsigma}'	
 			for s in zbasis:
-				r,m=CheckStateTP(kblock,L,s,T=a)
+				#r,m=CheckStateTP(kblock,L,s,T=a)
 				#print [s,r,m]
 				#some redundancy: if r=-1 I guess we need not do the following
 				for sigma in sigma_r:
+					r,m=CheckStateTP(kblock,L,s,T=a)
 					if m != -1:
 						if 1 + sigma*pblock*cos(kblock*m*2*pi/L) == 0:
 							r = -1
+							#print "first"
 						if (sigma == -1) and (1 - sigma*pblock*cos(kblock*m*2*pi/L) != 0):
 							r = -1
+							#print "second"
 					#print [s,r,m,sigma]
 					if r>0:
 						#print [r,m], sigma*r
@@ -223,7 +226,7 @@ class PeriodicBasis1D(Basis):
 			self.Zcon=False
 		
 		print 'R =', self.R
-		if self.Zcon:
+		if self.Zcon or self.Pcon:
 			print 'm =', self.m
 		print 'list basis vectors:'
 		for i in xrange(self.Ns):
@@ -356,7 +359,7 @@ class PeriodicBasis1D(Basis):
 						n=1
 
 					ME,s2=SpinOp(s1,opstr,indx);	
-					s2,l,q=self.RefState(s2)
+					s2,l,q,g,qg=self.RefState(s2)
 					stt=self.FindZstate(s2)
 
 					if st == stt: #diagonal matrix elements:
@@ -369,8 +372,8 @@ class PeriodicBasis1D(Basis):
 
 							#ME *= J*self.helement(st_i, st_i, l, q) + Ez
 							#ME_list.append([ME,st_i,st_i])
-				"""
 				
+				"""
 				#print [st,stt]
 				if stt >= 0:
 					if self.Kcon and self.Pcon:
@@ -399,14 +402,8 @@ class PeriodicBasis1D(Basis):
 								Ez = 0; #need to sum up all diagonal operator strings in here	
 								me = 0;					 
 								for st_i in xrange(st, st+n-1 +1, 1):
-									#ME *= ME + Ez
-									ME *= J*self.helement(st_i, st_i, l, q) + Ez
-									#ME_list.append([ME,st,st])
-									ME_list.append([ME,st_i,st_i])
-									#print 'before:', me
-									#me = me + (J*self.helement(st_i, st_i, l, q) + Ez)*ME
-									#me = me + (J + Ez)*ME
-									#print 'after:', me
+									me = (J*self.helement(st_i, st_i, l, q) + Ez)*ME
+									ME_list.append([me,st_i,st_i])
 								
 								#ME_list.append([me,st,st])
 								#print ME_list
@@ -423,10 +420,10 @@ class PeriodicBasis1D(Basis):
 								for stt_j in xrange(stt, stt+m-1 +1, 1):
 									#print m, [[stt,stt+m-1]], stt_j
 									for st_i in xrange(st, st+n-1+1 , 1):
-										ME *= + J*self.helement(st_i, stt_j, l, q)
-										ME_list.append([ME,st_i,stt_j])
-										#me = (J*self.helement(st_i, stt_j, l, q) )*ME
-										#ME_list.append([me,st_i,stt_j])
+										#ME *= + J*self.helement(st_i, stt_j, l, q)
+										#ME_list.append([ME,st_i,stt_j])
+										me = (J*self.helement(st_i, stt_j, l, q) )*ME
+										ME_list.append([me,st_i,stt_j])
 										#print 'offdiag', [ME, J,self.helement(st_i, stt_j, l, q)], [me,st_i,stt_j]
 							"""	
 
@@ -441,8 +438,10 @@ class PeriodicBasis1D(Basis):
 								for stt_j in xrange(stt, stt+m-1 + 1, 1):
 									#print m, [[stt,stt+m-1]], stt_j
 									for st_i in xrange(st, st+n-1 + 1, 1):
-										ME *= + J*self.helement(st_i, stt_j, l, q)
-										ME_list.append([ME,st_i,stt_j])
+										#ME *= + J*self.helement(st_i, stt_j, l, q)
+										#ME_list.append([ME,st_i,stt_j])
+										me = (J*self.helement(st_i, stt_j, l, q) )*ME
+										ME_list.append([me,st_i,stt_j])
 										#print [ME,st_i,stt_j]
 										#print [st_i,stt_j], [ self.helement(st_i, stt_j, l, q), self.helement(stt_j, st_i, l, q) ]
 							"""
@@ -466,6 +465,10 @@ class PeriodicBasis1D(Basis):
 			return ME_list
 		else: # else, no special care is needed, just use the equivilant method from Basis class 
 			return Basis.Op(self,J,opstr,indx)
+
+
+
+			
 		
 		
 
