@@ -219,9 +219,8 @@ class PeriodicBasis1D(Basis):
 			for s in zbasis:
 				for sigma in sigma_r:
 					r,mp,mz,mpz=CheckStateTPZ(kblock,L,s,T=a)
-					print "before: ", [s,r], [mp,mz,mpz]
+					#print "before: ", sigma, [s,r], [mp,mz,mpz]
 					if mp != -1 and mz == -1 and mpz == -1:
-						#print 1 + sigma*pblock*cos(mp*self.k)
 						if 1 + sigma*pblock*cos(mp*self.k) == 0:
 							r = -1
 						if (sigma == -1) and (1 - sigma*pblock*cos(mp*self.k) != 0):
@@ -236,12 +235,10 @@ class PeriodicBasis1D(Basis):
 							r = -1
 					if (mp != -1) and (mz != -1):
 						if (1 + sigma*pblock*cos(mp*self.k) == 0) or (1 + zblock*cos(mz*self.k) == 0):
-							#print  'first', (1 + sigma*pblock*cos(mp*self.k) == 0), (1 + zblock*cos(mz*self.k) == 0)
 							r = -1
 						if (sigma == -1) and ( (1 - sigma*pblock*cos(mp*self.k) != 0) or (1 - zblock*cos(mz*self.k) != 0) ):
-							#print 'second', (sigma == -1), ( (1 - sigma*pblock*cos(mp*self.k) != 0), (1 - zblock*cos(mz*self.k) != 0) )
 							r = -1
-					print "after: ", [s,r], [mp,mz,mpz]
+					#print "after: ", sigma, [s,r], [mp,mz,mpz]
 					if r>0:
 						if mp==-1 and mz==-1 and mpz==-1:
 							self.c.append(1)
@@ -293,11 +290,13 @@ class PeriodicBasis1D(Basis):
 			for s in zbasis:
 				for sigma in sigma_r:
 					r,m=CheckStateTP(kblock,L,s,T=a)
+					#print "before: ", sigma, [s,r], [m]
 					if m != -1:
 						if 1 + sigma*pblock*cos(m*self.k) == 0:
 							r = -1
 						if (sigma == -1) and (1 - sigma*pblock*cos(m*self.k) != 0):
 							r = -1
+					#print "after: ", sigma, [s,r], [m]		
 					if r>0:
 						self.R.append(sigma*r)
 						self.m.append(m)	
@@ -318,11 +317,11 @@ class PeriodicBasis1D(Basis):
 			self.basis=vec('L')
 			for s in zbasis:
 				r,m=CheckStateTZ(kblock,L,s,T=a)
-				print "before:", [s,r,m]
+				#print "before:", [s,r,m]
 				if m != -1:
 					if 1 + zblock*cos(self.k*m) == 0:
 						r=-1
-				print "after:", [s,r,m]		
+				#print "after:", [s,r,m]		
 				if r>0:
 					self.R.append(r)
 					self.m.append(m)	
@@ -473,30 +472,20 @@ class PeriodicBasis1D(Basis):
 			else:
 				cb = (-sigma*sin(self.k*l) + self.pblock*sin(self.k*(l-self.m[stt]))  )/(1 - sigma*self.pblock*cos(self.k*self.m[stt]) )
 
-		#print 'helement:', (sigma*self.pblock)**q, Nratios, cb
 		return (sigma*self.pblock)**q*Nratios*cb
-		#return (sigma*self.pblock)**q*sqrt( float( self.Nasigma(stt,sigma)/self.Nasigma(st,sigma)  ) ) * self.curlybracket_Eqs_151_152(st, stt, l)
-
+		
 
 	def helementTPZ(self, st, stt, l, q, g):
 		sigma = sign(self.Nasigma[st])
 		Nratios = sqrt( abs( float( self.Nasigma[stt]/self.Nasigma[st]  )   )  )
 
 		if sign(self.Nasigma[st]) == sign(self.Nasigma[stt]): #sigma-diagonal elements
-			if self.c[st]==1 or self.c[st]==3:
+			if self.c[stt]==1 or self.c[stt]==3:
 				cb = cos(self.k*l) #curly bracket
-			elif self.c[st]==2 or self.c[st]==5:
+			elif self.c[stt]==2 or self.c[stt]==5:
 				cb = (cos(self.k*l) + sigma*self.pblock*cos(self.k*(l-self.m[stt]))  )/(1 + sigma*self.pblock*cos(self.k*self.m[stt]) )
-				#print self.k,l,sigma,self.pblock,self.m[stt]
-				#print cb, self.c[st], [st,stt], [(cos(self.k*l) + sigma*self.pblock*cos(self.k*(l-self.m[stt]))  ),(1 + sigma*self.pblock*cos(self.k*self.m[stt]) )]
-			else:	
+			elif self.c[stt]==4:	
 				cb = (cos(self.k*l) + sigma*self.pblock*self.zblock*cos(self.k*(l-self.m[stt]))  )/(1 + sigma*self.pblock*self.zblock*cos(self.k*self.m[stt]) )
-				#print l,q,g
-				#print self.k,l,sigma,self.pblock,self.m[stt]
-				#print [cos(self.k*l), cos(self.k*(l-self.m[stt])), self.k*(l-self.m[stt])]
-				print cb, self.c[st], [st,stt], [(cos(self.k*l) + sigma*self.pblock*self.zblock*cos(self.k*(l-self.m[stt]))  ),(1 + sigma*self.pblock*self.zblock*cos(self.k*self.m[stt]) )]
-		
-
 		else: #sigma-offdiagonal elements
 			if self.c[st]==1 or self.c[st]==3:
 				cb = -sigma*sin(self.k*l)
@@ -527,8 +516,8 @@ class PeriodicBasis1D(Basis):
 				s2,l,q,g,qg=self.RefState(s2)
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
 
-				
-				#print [s1,s2]
+				#print [s1,s2], [st,stt]
+				#print l,q,g,self.m[stt]
 				if stt >= 0:
 					if self.Kcon and self.Pcon and self.Zcon:
 
