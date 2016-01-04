@@ -8,23 +8,6 @@ from numpy import pi,exp,sin,cos,sqrt,sign
 # References:
 # [1]: A. W. Sandvik, AIP Conf. Proc. 1297, 135 (2010)
 
-'''
-def CheckStateT(kblock,L,s,T=1):
-	# this is a function defined in [1]
-	# It is used to check if the integer inputed is a reference state for a state with momentum k.
-	#		kblock: the number associated with the momentum (i.e. k=2*pi*kblock/L)
-	#		L: length of the system
-	#		s: integer which represents a spin config in Sz basis
-	#		T: number of sites to translate by, not 1 if the unit cell on the lattice has 2 sites in it.
-	t=s
-	for i in xrange(1,L+1,T):
-		t = shift(t,-T,L)
-		if t < s:
-			return -1
-		elif t==s:
-			if kblock % (L/i) != 0: return -1 # need to check the shift condition 
-			return i
-'''
 
 def CheckStateT(kblock,L,s,T=1):
 	# this is a function defined in [1]
@@ -228,6 +211,7 @@ class PeriodicBasis1D(Basis):
 			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(pblock) != 1: raise BasisError("pblock must have integer values +/-1")
 			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
 			self.a=a
 			self.kblock=kblock
 			self.k=2*pi*a*kblock/L
@@ -305,6 +289,7 @@ class PeriodicBasis1D(Basis):
 		elif type(kblock) is int and type(pzblock) is int:
 			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(pzblock) != 1: raise BasisError("pzblock must have integer values +/-1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
 			self.a=a
 			self.kblock=kblock
 			self.k=2*pi*a*kblock/L
@@ -369,10 +354,10 @@ class PeriodicBasis1D(Basis):
 					#print "after: ", sigma, [s,r], [m]		
 					if r>0:
 						if m>=0:
-							Na = 2/float(r)*(1 + sigma*self.pblock*cos(self.k*m))
+							Na = 1/float(r)*(1 + sigma*self.pblock*cos(self.k*m))
 							#self.Nasigma.append(sigma*Na)
 						else:
-							Na = 2/float(r)
+							Na = 1/float(r)
 						self.Nasigma.append(sigma*Na)
 						self.m.append(m)	
 						self.basis.append(s)
@@ -380,6 +365,7 @@ class PeriodicBasis1D(Basis):
 		elif type(kblock) is int and type(zblock) is int:
 			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
 			self.a=a
 			self.kblock=kblock
 			self.k=2*pi*a*kblock/L
@@ -432,7 +418,7 @@ class PeriodicBasis1D(Basis):
 			print 'list basis vectors:'
 			for i in xrange(self.Ns):
 				print [self.basis[i],int2bin( self.basis[i] ,L)]
-		elif self.Pcon and self.Zcon:
+		elif self.Kcon and self.Zcon:
 			print 'NaTZ =', self.NaTZ
 			print 'm =', self.m
 			print 'list basis vectors:'
@@ -521,25 +507,8 @@ class PeriodicBasis1D(Basis):
 					r=t; l=i;
 		return r,l,q,g,qg
 
-	
-	"""
-	def Nasigma(self,st,sigma): #Eq. (144) from [1]
-		r = float( abs(self.R[st]) )
-		if self.m[st] <= 0:
-			return 1/r
-		else:
-			return 1/r*(1 + sigma*self.pblock*cos(self.k*self.m[st]))
-
-	def NaTZ(self,st): #Eq. (154) from [1]
-		r = float( abs(self.R[st]) )
-		if self.m[st] <= 0:
-			return 2/r
-		else:
-			return 2/r*(1 + self.zblock*cos(self.k*self.m[st]))		
-	"""
 
 
-	print 'can gain speed by putting sigma as argument in helement below'
 	def helement(self, st, stt, l, q):
 		sigma = sign(self.Nasigma[st])
 		Nratios = sqrt( abs( float( self.Nasigma[stt]/self.Nasigma[st]  )   )  )
@@ -637,19 +606,19 @@ class PeriodicBasis1D(Basis):
 								n=2
 							else:									
 								n=1
-				
-							if st == stt: #diagonal matrix elements:
 
-								Ez = 0; #need to sum up all diagonal operator strings in here	
-								me = 0;					 
+							me = 0;				
+							if st == stt and l==0 and q==0 and g==0 and qg==0: #diagonal matrix elements:
+
 								for st_i in xrange(st, st+n-1 +1, 1):
 									if self.Kcon and self.Pcon and self.Zcon:
-										me = (J*self.helementTPZ(st_i, st_i, l, q, g) + Ez)*ME
+										me = (J*self.helementTPZ(st_i, st_i, l, q, g) )*ME
 									elif self.Kcon and self.PZcon:
-										me = (J*self.helementT_PZ(st_i, st_i, l, qg) + Ez)*ME
+										me = (J*self.helementT_PZ(st_i, st_i, l, qg) )*ME
 									elif self.Kcon and self.Pcon:
-										me = (J*self.helement(st_i, st_i, l, q) + Ez)*ME
+										me = (J*self.helement(st_i, st_i, l, q) )*ME 
 
+									#print l,ME;
 									ME_list.append([me,st_i,st_i])
 							# Eq. {16} in [1]	
 							else: #offdiagonal matrix elements 
@@ -673,9 +642,9 @@ class PeriodicBasis1D(Basis):
 						ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zblock**g*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])		
 					elif self.Kcon:
-
 						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])
+						#if st==stt: print l,ME;
 				
 				else:
 					ME=0.0;	stt=st
