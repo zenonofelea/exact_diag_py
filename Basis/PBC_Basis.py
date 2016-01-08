@@ -200,7 +200,8 @@ class PeriodicBasis1D(Basis):
 		self.pblock=None
 		self.zblock=None
 		self.pzblock=None
-
+		if (type(kblock) is int) and (L%a != 0):
+			raise BasisError("lattice spacing a must be divisor of L.")
 
 		# if symmetry is needed, the reference states must be found.
 		# This is done through the CheckState function. Depending on
@@ -208,7 +209,6 @@ class PeriodicBasis1D(Basis):
 		# symmetries are used, the Checkstate functions be called
 		# sequentially in order to check the state for all symmetries used.
 		if type(kblock) is int and type(pblock) is int and type(zblock) is int:
-			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(pblock) != 1: raise BasisError("pblock must have integer values +/-1")
 			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
 			if self.L % 2 != 0: raise BasisError("chain length must be even!")
@@ -287,7 +287,6 @@ class PeriodicBasis1D(Basis):
 							self.basis.append(s)	
 			self.Ns=len(self.basis)
 		elif type(kblock) is int and type(pzblock) is int:
-			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(pzblock) != 1: raise BasisError("pzblock must have integer values +/-1")
 			if self.L % 2 != 0: raise BasisError("chain length must be even!")
 			self.a=a
@@ -325,7 +324,6 @@ class PeriodicBasis1D(Basis):
 						self.basis.append(s)
 			self.Ns=len(self.basis)	
 		elif type(kblock) is int and type(pblock) is int:
-			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(pblock) != 1: raise BasisError("pblock must have integer values +/-1")
 			self.a=a
 			self.kblock=kblock
@@ -363,7 +361,6 @@ class PeriodicBasis1D(Basis):
 						self.basis.append(s)
 			self.Ns=len(self.basis)
 		elif type(kblock) is int and type(zblock) is int:
-			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
 			if self.L % 2 != 0: raise BasisError("chain length must be even!")
 			self.a=a
@@ -393,7 +390,6 @@ class PeriodicBasis1D(Basis):
 					self.basis.append(s)
 			self.Ns=len(self.basis)	
 		elif type(kblock) is int:
-			if kblock < 0 or kblock >= L: raise BasisError("0<= kblock < "+str(L))
 			self.a=a
 			self.kblock=kblock
 			self.k=2*pi*a*kblock/L
@@ -412,7 +408,8 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=False # do not change symm to False since there may be Magnetization conservation.
 			self.Pcon=False
 			self.Zcon=False
-		
+
+
 		if self.Kcon==True and self.Pcon==False and self.Zcon==False and self.PZcon==False:
 			print 'R =', self.R
 			print 'list basis vectors:'
@@ -431,7 +428,6 @@ class PeriodicBasis1D(Basis):
 			print 'list basis vectors:'
 			for i in xrange(self.Ns):
 				print [self.basis[i],int2bin( self.basis[i] ,L)]
-		
 
 
 	def RefState(self,s):
@@ -443,68 +439,69 @@ class PeriodicBasis1D(Basis):
 		# This information is needed to calculate the matrix element s between states in this basis [1].
 		t=s; r=s; l=0; q=0; g=0; qg=0;
 		if self.Kcon and self.Pcon and self.Zcon:
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=0; q=0;	
 			t = s;
 			t = flip_all(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=1; q=0;
 			t = s;
 			t = fliplr(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=0; q=1;
 			t = s;
 			t = fliplr(t,self.L)
 			t = flip_all(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=1; q=1;		
 		elif self.Kcon and self.Pcon:
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t < r:
 					r=t; l=i;		
 			t = s;
 			t = fliplr(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; q=1;	
 		elif self.Kcon and self.Zcon:
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t < r:
 					r=t; l=i;		
 			t = s;
 			t = flip_all(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=1;
 		elif self.Kcon and self.PZcon:
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t < r:
 					r=t; l=i;		
 			t = s;
 			t = flip_all(t,self.L)
 			t = fliplr(t,self.L)
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; qg=1;								
 		elif self.Kcon:
-			for i in xrange(1,self.L+1,self.a):
+			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
 				if t < r:
 					r=t; l=i;
+
 		return r,l,q,g,qg
 
 
