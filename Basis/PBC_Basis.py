@@ -39,12 +39,12 @@ def CheckStateTP(kblock,L,s,T=1):
 	t=s
 	R=-1
 	m = -1 
-	for i in xrange(1,L+1,T):
+	for i in xrange(1,L/T+1):
 		t = shift(t,-T,L)
 		if t < s:
 			return R,m
 		elif t==s:
-			if kblock % (L/i) != 0: # need to check the shift condition 
+			if kblock % (L/(T*i)) != 0: # need to check the shift condition 
 				return R,m
 			R = i
 			break
@@ -71,12 +71,12 @@ def CheckStateTZ(kblock,L,s,T=1):
 	t=s
 	R=-1
 	m = -1 
-	for i in xrange(1,L+1,T):
+	for i in xrange(1,L/T+1):
 		t = shift(t,-T,L)
 		if t < s:
 			return R,m
 		elif t==s:
-			if kblock % (L/i) != 0: # need to check the shift condition 
+			if kblock % (L/(T*i)) != 0: # need to check the shift condition 
 				return R,m
 			R = i
 			break
@@ -103,12 +103,12 @@ def CheckStateT_PZ(kblock,L,s,T=1):
 	t=s
 	R=-1
 	m = -1 
-	for i in xrange(1,L+1,T):
+	for i in xrange(1,L/T+1):
 		t = shift(t,-T,L)
 		if t < s:
 			return R,m
 		elif t==s:
-			if kblock % (L/i) != 0: # need to check the shift condition 
+			if kblock % (L/(T*i)) != 0: # need to check the shift condition 
 				return R,m
 			R = i
 			break
@@ -136,12 +136,12 @@ def CheckStateTPZ(kblock,L,s,T=1):
 	t=s
 	R=-1
 	mpz = -1; mp = -1; mz = -1; 
-	for i in xrange(1,L+1,T):
+	for i in xrange(1,L/T+1):
 		t = shift(t,-T,L)
 		if t < s:
 			return R,mp,mz,mpz
 		elif t==s:
-			if kblock % (L/i) != 0: # need to check the shift condition 
+			if kblock % (L/(T*i)) != 0: # need to check the shift condition 
 				return R,mp,mz,mpz
 			R = i
 			break	
