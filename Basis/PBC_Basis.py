@@ -18,12 +18,12 @@ def CheckStateT(kblock,L,s,T=1):
 	#		T: number of sites to translate by, not 1 if the unit cell on the lattice has 2 sites in it.
 	t=s
 	R=-1
-	for i in xrange(1,L+1,T):
+	for i in xrange(1,L/T+1):
 		t = shift(t,-T,L)
 		if t < s:
 			return R
 		elif t==s:
-			if kblock % (L/i) != 0: return R # need to check the shift condition 
+			if kblock % (L/(T*i)) != 0: return R # need to check the shift condition 
 			R = i
 			return R			
 
@@ -409,7 +409,7 @@ class PeriodicBasis1D(Basis):
 			self.Pcon=False
 			self.Zcon=False
 
-
+		"""	
 		if self.Kcon==True and self.Pcon==False and self.Zcon==False and self.PZcon==False:
 			print 'R =', self.R
 			print 'list basis vectors:'
@@ -429,6 +429,7 @@ class PeriodicBasis1D(Basis):
 			for i in xrange(self.Ns):
 				print [self.basis[i],int2bin( self.basis[i] ,L)]
 
+		"""
 
 	def RefState(self,s):
 		# this function takes an integer s which represents a spin configuration in the Sz basis, then tries to find its 
@@ -650,11 +651,3 @@ class PeriodicBasis1D(Basis):
 			return ME_list
 		else: # else, no special care is needed, just use the equivilant method from Basis class 
 			return Basis.Op(self,J,opstr,indx)
-
-
-
-
-		
-		
-
-
