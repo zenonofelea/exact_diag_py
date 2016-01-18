@@ -242,7 +242,7 @@ def Mean_Level_Spacing(E):
 	sn = np.diff(E)
 	# check for degeneracies
 	if len(np.unique(E)) != len(E):
-		print "Warning: degeneracies in the spectrum"
+		raise Exception("Warning: degeneracies in the spectrum")
 	# calculate the ratios of consecutive spacings
 	aux = np.zeros((len(E)-1,2),dtype=np.float64)
 
