@@ -4,7 +4,7 @@ from numpy import *
 import numpy as np
 import scipy as sp
 
-L=8
+L=6
 
 
 '''
@@ -17,7 +17,7 @@ h=[[1.0,i] for i in xrange(L)]
 PBC = 0
 
 U = 1.0
-J0 = 1
+J0 = sqrt(2)
 Q=0;
 h=0;
 
@@ -63,14 +63,12 @@ elif PBC==0:
 #staticSSH=[['+-',Jstr],['-+',Jstr],['+-',Jprimestr],['-+',Jprimestr], ['zz',Ustr]] 
 
 #static=[['z',hstr],['+-',J0str],['-+',J0ccstr],['zz',Ustr],['+z-',Qstr],['-z+',Qccstr]]
-static1=[['+-',J0str],['-+',J0ccstr], ['zz',Ustr]]  
+#static1=[ ['zz',Ustr]]
+static1=[['+-',J0str],['-+',J0ccstr], ['zz',Ustr]]    
 static2=[['+-',J0str],['-+',J0ccstr],['+z-',Qstr],['-z+',Qccstr]] 
 dynamic=[]; #[['x',hstr,A]]
 
 #####################################################################
-
-#define symmetry parameters
-symm= [0,1,1]
 
 
 basis=Basis1D(L)#,Nup=L/2,kblock=symm[0],pblock=symm[1],zblock=symm[2])
@@ -94,33 +92,57 @@ E2,V2 = H2.DenseEV(0)
 #print '# e''values =', [len(E1), len(E2)]
 #print '# evalues:', len(E)
 
-"""
+
 # calculate GS
-psiSSHGS = VSSH[:,0]
-ESSHGS = ESSH[0]
-print ESSHGS/L
-"""
+psi1GS = V1[:,0]
+E1GS = E1[0]
+print E1GS/L
+
 
 Ns = basis.Ns
 
 #print psiGS
 
 
-def S_ent(L_A,L,psi,symm):
+def Renyi_entropy(L_A,L,psi, init_site=0,alpha=1):
 	# L_A: length of subsystem A
 	# psi: pure quantum state
-	# symm=[kblock,pblock,zblock]: vector with integers to specify symmetries of basis
-
-	Ns_A = 2**L_A
-	Ns_B = 2**(L-L_A)
-
-	v = np.reshape(psi, (Ns_A, Ns_B))
+	# alpha: Renyi parameter
+	# init_site: initial site counted from which subsystem A spans L_A sites to the right
 	
-	alpha = sp.linalg.svd(v, compute_uv=False, overwrite_a=True, check_finite=True)
+	if alpha < 0:
+		print "alpha must be a nonnegative integer"
 
-	return -1./L_A*( ( abs(alpha)**2).dot( 2*log( abs(alpha)  ) ) ).sum()
+	if init_site > L-1:
+		print "init_site cannot exceed lattice site number"	
+	
 
-#print "entanglement entropy:", [0.5*S_ent(L/2,L,psiSSHGS,symm), log(2)]	
+	#calculate H-space dimensions of the subsystem and the system
+	Ns_A = 2**L_A
+
+	if init_site == 0:
+		Ns_Ac = 2**(L-L_A) # dim of H-space of complement of A
+		v = np.real( np.reshape(psi, (Ns_A, Ns_Ac)) ) #cast initial state into a vector of the tensor product space
+	else:
+		Ns_Ac_l = 2**(init_site) # dim of H-space of complement left of A
+		Ns_Ac_r = 2**(L-L_A - init_site)  # dim of H-space of complement right of A
+		v = np.real( np.reshape(psi, (Ns_A, Ns_Ac_l*Ns_Ac_r)) ) #cast initial state into a vector of the tensor product space
+		v = np.roll(v,Ns_Ac_l, axis=1) # permute columns to put the dimension of subsystem A at the right place
+
+	# apply singular value decomposition
+	gamma = sp.linalg.svd(v, compute_uv=False, overwrite_a=True, check_finite=True)
+
+	# calculate Renyi entropy
+	if any(gamma == 1.0):
+		return 0
+	else:
+		if alpha == 1:
+			return -1./L_A*( ( abs(gamma)**2).dot( 2*log( abs(gamma)  ) ) ).sum()
+		else:
+			return  1./L_A*( 1./(1-alpha)*log( (gamma**alpha).sum() )  )
+
+S_ent = Renyi_entropy(L/2,L,psi1GS,alpha=3,init_site=2)
+print "entanglement entropy:", [0.5*S_ent, log(2)]	
 
 
 def Diag_Ens_Observables(V1,V2,E1,betavec,L,alpha):
@@ -238,7 +260,7 @@ def Observable_vs_time(psi,V2,E2,Obs,times):
 #print Observable_vs_time(V1[:,0],V2,E2,H1,times)
 
 def Mean_Level_Spacing(E):
-	# compute consecuive E-differences
+	# compute consecutive E-differences
 	sn = np.diff(E)
 	# check for degeneracies
 	if len(np.unique(E)) != len(E):
