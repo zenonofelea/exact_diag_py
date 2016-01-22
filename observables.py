@@ -4,7 +4,7 @@ from numpy import *
 import numpy as np
 import scipy as sp
 
-L=6
+L=8
 
 
 '''
@@ -17,7 +17,7 @@ h=[[1.0,i] for i in xrange(L)]
 PBC = 0
 
 U = 1.0
-J0 = sqrt(2)
+J0 = sqrt(3)
 Q=0;
 h=0;
 
@@ -27,7 +27,7 @@ dzeta = 0.2*zeta; #driving amplitude in rot frame
 J      = J0*2/pi*(zeta-dzeta)*cos(pi/2*(zeta-dzeta))/(1 - (zeta-dzeta)**2)
 Jprime = J0*2/pi*(zeta+dzeta)*cos(pi/2*(zeta+dzeta))/(1 - (zeta+dzeta)**2)
 
-betavec = [1, 1/1000]
+betavec = [1.0, 1.0/100]
 
 #define parameter strings over the lattice
 
@@ -70,13 +70,11 @@ dynamic=[]; #[['x',hstr,A]]
 
 #####################################################################
 
+# use for checking S_ent
+basis=Basis1D(L)
+# use for checking the rest
+basis=Basis1D(L,Nup=L/2,kblock=1,pblock=1,zblock=1)
 
-basis=Basis1D(L)#,Nup=L/2,kblock=symm[0],pblock=symm[1],zblock=symm[2])
-
-#basis=Basis1D(L,Nup=L/2,kblock=0,pblock=+1,zblock=-1)
-#basis=Basis1D(L,Nup=L/2,kblock=0,pblock=+1,zblock=+1)
-#basis=Basis1D(L,Nup=L/2,kblock=0,pblock=+1)
-#basis=Basis1D(L,Nup=L/2,kblock=0)
 
 #H_SSH=Hamiltonian1D(staticSSH,dynamic,L,basis=basis)
 H1=Hamiltonian1D(static1,dynamic,L,basis=basis)
@@ -111,7 +109,7 @@ def Renyi_entropy(L_A,L,psi, init_site=0,alpha=1):
 	# init_site: initial site counted from which subsystem A spans L_A sites to the right
 	
 	if alpha < 0:
-		print "alpha must be a nonnegative integer"
+		print "alpha must be a nonnegative real number"
 
 	if init_site > L-1:
 		print "init_site cannot exceed lattice site number"	
@@ -136,85 +134,149 @@ def Renyi_entropy(L_A,L,psi, init_site=0,alpha=1):
 	if any(gamma == 1.0):
 		return 0
 	else:
-		if alpha == 1:
+		if alpha == 1.0:
 			return -1./L_A*( ( abs(gamma)**2).dot( 2*log( abs(gamma)  ) ) ).sum()
 		else:
 			return  1./L_A*( 1./(1-alpha)*log( (gamma**alpha).sum() )  )
 
-S_ent = Renyi_entropy(L/2,L,psi1GS,alpha=3,init_site=2)
-print "entanglement entropy:", [0.5*S_ent, log(2)]	
+#S_ent = Renyi_entropy(L/2,L,psi1GS,alpha=3,init_site=2)
+#print "entanglement entropy:", [0.5*S_ent, log(2)]	
 
 
-def Diag_Ens_Observables(V1,V2,E1,betavec,L,alpha):
+def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1, Obs=False, Ed=False,S_double_quench=False,Sd_Renyi=False,deltaE=False):
 	# V1, V2:  matrices with pre and post quench eigenbases
 	# E1: vector of energies of pre-quench
+	# Obs: any hermitian observable
 	# betavec: vector of inverse temperatures
 	# alpha: Renyi entropy parameter
 
+	variables_GS = []
+	variables_T = []
+
+	if any(Obs):
+		variables_GS.append("Obs_GS")
+		variables_T.append("Obs_T")
+	if Ed:
+		variables_GS.append("Ed_GS")
+		variables_GS.append("E_Tinf")
+		variables_T.append("Ed_T")
+	if S_double_quench:
+		variables_GS.append("S_double_quench_GS")
+		variables_T.append("S_double_quench_T")
+	if Sd_Renyi:
+		variables_GS.append("Sd_Renyi_GS")
+		variables_T.append("Sd_Renyi_T")
+	if S_double_quench or Sd_Renyi:
+		variables_GS.append("S_Tinf")
+	if deltaE:
+		variables_GS.append("deltaE_GS")
+		variables_T.append("deltaE_T")
+
+	if not variables_GS:
+		print "No observables were requested: ..exiting"
+		return None
+
+	
+	print "WARNING: if no symmetries are used, the probabilities pn have 0 entries, and log(0) gives an error"
+	print "I tested the code with symmetries"
+
 	Ns = len(E1) # Hilbert space dimension
 
-	#define thernal density matrix
-	rho = zeros((Ns,len(betavec)),dtype=np.float64)
-	for i in xrange(len(betavec)):
-		rho[:,i] = exp(-betavec[i]*(E1-E1[0]))/sum( exp(-betavec[i]*(E1-E1[0]) ) )
+	if betavec:
+		#define thermal density matrix w.r.t. the basis V1	
+		rho = zeros((Ns,len(betavec)),dtype=np.float64)
+		for i in xrange(len(betavec)):
+			rho[:,i] = exp(-betavec[i]*(E1-E1[0]))/sum( exp(-betavec[i]*(E1-E1[0]) ) )
 
+	# diagonam matrix elements of Obs in the basis V2
+	if any(Obs):
+		O_mm = np.real( np.einsum( 'ij,ji->i', V2.transpose().conj(), Obs.dot(V2 ) ) )
 	#probability amplitudes
 	a_n = (V1.conjugate().transpose()).dot(V2);
 	V1 = None
 	V2 = None
-	# transition rates matrix
+	# transition rates matrix (H1->H2)
 	T_nm = real( np.multiply(a_n, a_n.conjugate()) )
 	# probability rates matrix (H1->H2->H1)
-	pn = T_nm.dot(T_nm.transpose() )
+	if Ed or S_double_quench:
+		pn = T_nm.dot(T_nm.transpose() )
+
+	# diagonal ens expectation value of Obs in post-quench basis
+	if any(Obs):
+		Obs_GS = (np.einsum( 'ij,j->i', T_nm.transpose(), O_mm )/L )[0] # GS
+		if betavec:
+			Obs_T = (np.einsum( 'ij,j->i', T_nm.transpose(), O_mm )/L ).dot(rho) # finite-temperature
 
 
-	#calculate diagonal energy < H1 > in long time limit
-	Ed_GS = (pn.transpose().dot(E1)/L )[0] # GS
-	Ed_T  = (pn.transpose().dot(E1)/L ).dot(rho) # finite-temperature
-	E_Tinf = E1.sum()/Ns/L # infinite temperature
+	#calculate diagonal energy <H1> in long time limit
+	if Ed:
+		Ed_GS = (pn.transpose().dot(E1)/L )[0] # GS
+		if betavec:
+			Ed_T  = (pn.transpose().dot(E1)/L ).dot(rho) # finite-temperature
+		E_Tinf = E1.sum()/Ns/L # infinite temperature
 
 	#calculate double-quench entropy (H1->H2->H1)
-	Sdq_GS = (np.einsum( 'ij,ji->i', -pn.transpose(), log(pn) )/L )[0] # GS
-	Sdq_T  = (np.einsum( 'ij,ji->i', -pn.transpose(), log(pn) )/L ).dot(rho) # finite-temperature
-	S_Tinf = log(2); # infinite temperature
+	if S_double_quench:
+		S_double_quench_GS = (np.einsum( 'ij,ji->i', -pn.transpose(), log(pn) )/L )[0] # GS
+		if betavec:
+			S_double_quench_T  = (np.einsum( 'ij,ji->i', -pn.transpose(), log(pn) )/L ).dot(rho) # finite-temperature
+	
 
 	# free up memory
 	pn = None
 
-	#calculate diagonal (Shannon) entropy (H1->H2)
-	Sd_GS = (np.einsum( 'ij,ji->i', -T_nm.transpose(), log(T_nm) )/L )[0] # GS
-	Sd_T  = (np.einsum( 'ij,ji->i', -T_nm.transpose(), log(T_nm) )/L ).dot(rho) # finite-temperature
+	#calculate diagonal Renyi entropy for parameter alpha: equals (Shannon) entropy for alpha=1: (H1->H2)
+	if Sd_Renyi:
+		if alpha != 1.0:
+			#calculate diagonal (Renyi) entropy for parameter alpha (H1->H2)
+			Sd_Renyi_GS = (1/(1-alpha)*np.diag( log( np.power( T_nm, alpha )   ) )/L )[0] # GS
+			if betavec:
+				Sd_Renyi_T = 1/(1-alpha)*( (log( np.power( np.diag(T_nm), alpha )  ) )/L  ).dot(rho) # finite-temperature
+		else:
+			print "Renyi entropy equals diagonal entropy"
+			Sd_Renyi_GS = (np.einsum( 'ij,ji->i', -T_nm.transpose(), log(T_nm) )/L )[0] # GS
+			if betavec:
+				Sd_Renyi_T = (np.einsum( 'ij,ji->i', -T_nm.transpose(), log(T_nm) )/L ).dot(rho) # finite-temperature
 
-	if alpha != 1:
-		#calculate diagonal (Renyi) entropy for parameter alpha (H1->H2)
-		Sd_Renyi_GS = (1/(1-alpha)*np.diag( log( np.power( T_nm, alpha )   ) )/L )[0] # GS
-		Sd_Renyi_T = 1/(1-alpha)*( (log( np.power( np.diag(T_nm), alpha )  ) )/L  ).dot(rho) # finite-temperature
-	else:
-		print "Renyi parameter alpha cannot be 1!"
-		Sd_Renyi_GS = "nan"
-		Sd_Renyi_T = "nan"
+	# infinite temperature entropy
+	if S_double_quench or Sd_Renyi:
+		S_Tinf = log(2); 
 
 	# calculate long-time energy fluctuations
+	if deltaE:
+		# calculate <H1^2>
+		H1_mn2 = (a_n.conjugate().transpose().dot( np.einsum('i,ij->ij',E1,a_n)) )**2
+		a_n = None
+		np.fill_diagonal(H1_mn2,0) 
 
-	# <H1^2>
-	H1_mn2 = (a_n.conjugate().transpose().dot( np.einsum('i,ij->ij',E1,a_n)) )**2
-	a_n = None
-	np.fill_diagonal(H1_mn2,0) 
+		dE = np.real(np.einsum( 'ij,ji->i', T_nm, H1_mn2.dot(T_nm.transpose()) )/(L**2) )
+		# free up memory
+		T_nmF = None
+		H1_mn2 = None
 
-	dE = np.real(np.einsum( 'ij,ji->i', T_nm, H1_mn2.dot(T_nm.transpose()) )/(L**2) )
-	# free up memory
-	T_nmF = None
-	H1_mn2 = None
+		deltaE_GS = dE[0] # GS
+		if betavec:
+			deltaE_T  = dE.dot(rho) # finite-temperature
+		# free up memory
+		dE = None
 
-	deltaE_GS = dE[0] # GS
-	deltaE_T  = dE.dot(rho) # finite-temperature
-	# free up memory
-	dE = None
+	return_dict = {}
+	for i in range(len(variables_GS)):
+		return_dict[variables_GS[i]] = vars()[variables_GS[i]]
+	if betavec:
+		return_dict_T = {}
+		for i in range(len(variables_T)):
+			return_dict_T[variables_T[i]] = vars()[variables_T[i]]
+    	# merge dictionaries
+    	if betavec: # no idea why it wants this if clause, I thought the previous if betavec one should be enough
+    		return_dict.update(return_dict_T)
+	
+	return return_dict
+	#return [[Ed_GS, E_Tinf, Ed_T], [S_double_quench_GS, S_Tinf, S_double_quench_T], [Sd_Renyi_GS, Sd_Renyi_T], [deltaE_GS, deltaE_T]]
 
-	return [[Ed_GS, E_Tinf, Ed_T], [Sdq_GS, S_Tinf, Sdq_T], [Sd_GS, Sd_T], [Sd_Renyi_GS, Sd_Renyi_T], [deltaE_GS, deltaE_T]]
 
-#alpha = 2	
-#print Diag_Observables(V1,V2,E1,betavec,L,alpha)
+print Diag_Ens_Observables(L,V1,V2,E1,Obs = V1+V1.transpose().conj(), Ed = True, betavec=betavec	)
+
 	
 
 def Kullback_Leibler_div(p1,p2):
