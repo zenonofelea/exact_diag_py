@@ -212,7 +212,7 @@ class OpenBasis1D(Basis):
 				#print st,int2bin(s1,self.L),int2bin(exchangeBits(s1,i,j),self.L), stt,int2bin(s2,self.L), q, g, [i,j]
 				if stt >= 0: 
 					if self.Pcon and self.Zcon:
-						ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.z**(g)
+						ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.zblock**(g)
 					elif self.Pcon:
 						ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
 					elif self.Zcon:
