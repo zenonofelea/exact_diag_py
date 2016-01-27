@@ -216,7 +216,7 @@ class OpenBasis1D(Basis):
 					elif self.Pcon:
 						ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
 					elif self.Zcon:
-						ME *=  0.5*J*self.z**(g)
+						ME *=  J*self.z**(g)
 					elif self.PZcon:
 						ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)		
 				else:
