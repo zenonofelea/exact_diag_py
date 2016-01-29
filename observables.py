@@ -162,6 +162,7 @@ def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1.0, Obs=False, Ed=False,S_
 		variables_GS.append("Ed_GS")
 		variables_GS.append("E_Tinf")
 		variables_T.append("Ed_T")
+		variables_T.append("E_Tave")
 	if S_double_quench:
 		variables_GS.append("S_double_quench_GS")
 		variables_T.append("S_double_quench_T")
@@ -215,6 +216,7 @@ def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1.0, Obs=False, Ed=False,S_
 		Ed_GS = pn[0,:].dot(E1)/L  # GS
 		if betavec:
 			Ed_T  = (pn.dot(E1)/L ).dot(rho) # finite-temperature
+			E_Tave = E1.dot(rho)/L # average energy density
 		E_Tinf = E1.sum()/Ns/L # infinite temperature
 
 	#calculate double-quench entropy (H1->H2->H1)
@@ -272,7 +274,7 @@ def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1.0, Obs=False, Ed=False,S_
 
 
 #print Diag_Ens_Observables(L,V1,V2,E1,Obs = V1+V1.transpose().conj(), Ed = True, betavec=betavec	)
-print Diag_Ens_Observables(L,V1,V2,E1, Obs=H1.todense(),Ed=True	)
+print Diag_Ens_Observables(L,V1,V2,E1, Obs=H1.todense(),Ed=True, betavec=betavec	)
 
 	
 
