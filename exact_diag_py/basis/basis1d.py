@@ -63,7 +63,7 @@ class basis1d:
 		if type(L) is not int:
 			raise TypeError('L must be integer')
 
-		if L>30: raise NotImplementedError('basis can only be constructed for L<31')
+		if L>32: raise NotImplementedError('basis can only be constructed for L<=32')
 
 
 		# checking type, and value of blocks
@@ -239,15 +239,13 @@ class basis1d:
 
 			
 			self.basis = _np.empty((self.Ns,),dtype=_np.int32)
-			self.N=_np.empty((self.Ns,),dtype=_np.int8)
 			if (type(Nup) is int):
-				self.Ns = _cn.make_m_z_basis(L,Nup,self.N,self.basis)
+				self.Ns = _cn.make_m_z_basis(L,Nup,self.basis)
 			else:
-				self.Ns = _cn.make_z_basis(L,self.N,self.basis)
+				self.Ns = _cn.make_z_basis(L,self.basis)
 
-			self.N = self.N[:self.Ns]
 			self.basis = self.basis[:self.Ns]
-			self.op_args=[self.N,self.basis,self.L]
+			self.op_args=[self.basis,self.L]
 				
 		elif type(pzblock) is int:
 			if self.conserved: self.conserved += " & PZ"
@@ -292,13 +290,13 @@ class basis1d:
 
 
 
-	def Op(self,J,dtype,opstr,indx):
+	def Op(self,opstr,indx,J,dtype,pauli):
 		if len(opstr) != len(indx):
 			raise ValueError('length of opstr does not match length of indx')
 		if not _np.can_cast(J,_np.dtype(dtype)):
 			raise TypeError("can't cast coupling to proper dtype")
 
-		return  op[self.conserved](opstr,indx,J,dtype,*self.op_args,**self.blocks)		
+		return  op[self.conserved](opstr,indx,J,dtype,pauli,*self.op_args,**self.blocks)		
 
 
 
