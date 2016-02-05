@@ -27,8 +27,6 @@ def CheckStateT(kblock,L,s,T=1):
 			R = i
 			return R			
 
-
-
 def CheckStateTP(kblock,L,s,T=1):
 	# this is a function defined in [1]
 	# It is used to check if the integer inputed is a reference state for a state with momentum k.
