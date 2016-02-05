@@ -3,7 +3,7 @@ from array import array as vec
 from numpy import sqrt
 # local modules
 from BitOps import * # loading modules for bit operations.
-from SpinOps import SpinOp
+from SpinOps import SpinPhotonOp
 from Z_Basis import Basis, BasisError
 
 # References:

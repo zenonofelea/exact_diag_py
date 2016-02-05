@@ -5,8 +5,10 @@ import operator as op # needed to calculate n choose r in function ncr(n,r).
 from array import array as vec
 
 # local modules
-from SpinOps import SpinOp # needed to act with opstr
+from SpinOps import SpinPhotonOp # needed to act with opstr
 from BitOps import * # loading modules for bit operations.
+
+import numpy as np
 
 # References:
 # [1]: A. W. Sandvik, AIP Conf. Proc. 1297, 135 (2010)
@@ -24,6 +26,25 @@ class BasisError(Exception):
 		return self.message
 
 
+def ElegantPair(x,y): #arrays of integers x and y
+	x = np.asarray(x)
+	y = np.asarray(y)
+	if x==np.max([x,y]):
+		z = x**2 + x + y 
+	else:
+		z = y**2 + x
+	return int(z.tolist())
+
+
+def ElegantUnpair(z): #integer z
+	z = int( np.asarray(z) )
+	if z - np.floor(np.sqrt(z))**2 < np.floor( np.sqrt(z) ):
+		x,y =  z - np.floor(np.sqrt(z))**2, np.floor( np.sqrt(z) )
+	else:
+		x,y =  np.floor(np.sqrt(z)), z - np.floor(np.sqrt(z))**2 - np.floor(np.sqrt(z))
+	return int(x.tolist()), int(y.tolist())
+
+
 def ncr(n, r):
 # this function calculates n choose r used to find the total number of basis states when the magnetization is conserved.
     r = min(r, n-r)
@@ -37,31 +58,49 @@ def ncr(n, r):
 # Basis classes must have the functionality of finding the matrix elements built in. This way, the function for constructing 
 # the hamiltonian is universal and the basis object takes care of constructing the correct matrix elements based on its internal symmetry. 
 class Basis:
-	def __init__(self,L,Nup=None):
+	def __init__(self,L,Nph=0,Nup=None):
 		# This is the constructor of the class Basis:
 		#		L: length of chain
 		#		Nup: number of up spins if restricting magnetization sector. 
 		self.L=L
-		if type(Nup) is int:
+		self.Nph=Nph
+		if (type(Nup) is int) and (type(Nph) is int):
 			if Nup < 0 or Nup > L: raise BasisError("0 <= Nup <= "+str(L))
+			if Nph < 0: raise BasisError("0 <= Nph ")
 			self.Nup=Nup
 			self.Mcon=True 
 			self.symm=True # Symmetry exsists so one must use the search functionality when calculating matrix elements
-			self.Ns=ncr(L,Nup) 
+			self.Ns=(Nph+1)*ncr(L,Nup) 
 			zbasis=vec('L')
-			s=sum([2**i for i in xrange(0,Nup)])
-			zbasis.append(s)
+			sp_zbasis = vec('L')
+			sp=sum([2**i for i in xrange(0,Nup)])
+			sp_zbasis.append(sp)
+			for ph in xrange(self.Nph+1):
+				zbasis.append( ElegantPair(sp,ph) )
 			for i in xrange(self.Ns-1):
-				t = (s | (s - 1)) + 1
-				s = t | ((((t & -t) / (s & -s)) >> 1) - 1) 
-				zbasis.append(s)
+				t = (sp | (sp - 1)) + 1
+				sp = t | ((((t & -t) / (sp & -sp)) >> 1) - 1)
+				sp_zbasis.append(sp)
+				for ph in xrange(self.Nph+1):
+					s = ElegantPair(sp,ph)
+					print [sp,ph], s
+					zbasis.append(s)
 		else:
-			self.Ns=2**L
+			self.Ns=(Nph+1)*2**L
 			self.Mcon=False
 			self.symm=False # No symmetries here. at all so each integer corresponds to the number in the hilbert space.
-			zbasis=xrange(self.Ns)
+			sp_zbasis=xrange(self.Ns)
+			zbasis=[]
+			for i in xrange(self.Ns):
+				for ph in xrange(self.Nph+1):
+					s = ElegantPair(i,ph)
+					zbasis.append(s)
+			#zbasis=xrange(self.Ns)
 
-		self.basis=zbasis
+		self.basis=zbasis # total spin + photon basis
+		self.sp_basis=sp_zbasis #spin basis only
+		print zbasis
+		print sp_zbasis
 
 
 	def FindZstate(self,s):
@@ -69,9 +108,9 @@ class Basis:
 			bmin=0;bmax=self.Ns-1
 			while True:
 				b=(bmin+bmax)/2
-				if s < self.basis[b]:
+				if s < self.sp_basis[b]:
 					bmax=b-1
-				elif s > self.basis[b]:
+				elif s > self.sp_basis[b]:
 					bmin=b+1
 				else:
 					return b
@@ -80,13 +119,20 @@ class Basis:
 		else: return s
 
 
-	def Op(self,J,opstr,indx):
+	def Op(self,J,Sopstr,Popstr,indx):
 		ME_list=[]
 		for st in xrange(self.Ns):
 			s1=self.basis[st]
-			ME,s2=SpinOp(s1,opstr,indx)
-			stt=self.FindZstate(s2)
+			ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx)
+			#print st, s1
+			#print sp2, ph2
+			
+			stt = self.FindZstate(sp2)
+
+			if stt>=0:
+				stt = self.basis.index( ElegantPair( sp2, ph2 ) )
 			ME_list.append([J*ME,st,stt])
+
 		return ME_list
 
 

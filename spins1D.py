@@ -21,7 +21,7 @@ supported_dtypes=(float32, float64, complex64, complex128)
 def StaticH(B,static,dtype):
 	"""
 	args:
-		static=[[opstr_1,indx_1],...,[opstr_n,indx_n]], list of opstr,indx to add up for static piece of Hamiltonian.
+		static=[[Sopstr_1,Popstr_1,indx_1],...,[Sopstr_n,Popstr_n,indx_n]], list of Sopstr,Popstr,indx to add up for static piece of Hamiltonian.
 		dtype = the low level C-type which the matrix should store its values with.
 	returns:
 		H: a csr_matrix representation of the list static
@@ -37,18 +37,22 @@ def StaticH(B,static,dtype):
 	ME_list=[] # this is a list which stores the matrix elements as lists [[row,col,ME],...] for the whole hamiltonian. 
 	for i in xrange(len(static)): 
 		List=static[i]
-		opstr=List[0]
-		bonds=List[1]
+		Sopstr=List[0]
+		Popstr=List[1]
+		bonds=List[2]
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(B.Op(J,opstr,indx))
+			ME_list.extend(B.Op(J,Sopstr,Popstr,indx))
 
 	if static: # if static is not an empty list []:
 		# there is no way to tranpose a list so we must convert to array, this process will convert all parts of the list to the most compatible type.
 		ME_list=asarray(ME_list).T.tolist() # transpose list so that it is now [[row,...],[col,...],[ME,...]] which is how coo_matrix is constructed.
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1]) # convert the indices back to integers 
 		ME_list[2]=map( lambda a:int(abs(a)), ME_list[2])	# convert the indices back to integers
+		#print "ME_list[0]", ME_list[0]
+		#print "ME_list[1]", ME_list[1]
+		#print "ME_list[2]", ME_list[2]
 		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns,B.Ns),dtype=dtype) # construct coo_matrix
 		H=H.tocsr() # convert to csr_matrix
 		H.sum_duplicates() # sum duplicate matrix elements
@@ -67,13 +71,13 @@ def StaticH(B,static,dtype):
 def DynamicHs(B,dynamic,dtype):
 	"""
 	args:
-	dynamic=[[opstr_1,indx_1,func_1],...,[opstr_n,indx_n,func_1]], list of opstr,indx and functions to drive with
+	dynamic=[[Sopstr_1, Popstr_1,indx_1,func_1],...,[Sopstr_n,Popstr_n,indx_n,func_1]], list of Sopstr,Popstr,indx and functions to drive with
 	dtype = the low level C-type which the matrix should store its values with.
 
 	returns:
 	tuple((func_1,H_1),...,(func_n,H_n))
 
-	H_i: a csr_matrix representation of opstr_i,indx_i
+	H_i: a csr_matrix representation of Sopstr_i,Popstr_i,indx_i
 	func_i: callable function of time which is the drive term in front of H_i
 
 	description:
@@ -86,12 +90,13 @@ def DynamicHs(B,dynamic,dtype):
 	for i in xrange(len(dynamic)):
 		ME_list=[]
 		List=dynamic[i]
-		opstr=List[0]
-		bonds=List[1]
+		Sopstr=List[0]
+		Popstr=List[1]
+		bonds=List[2]
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(B.Op(J,opstr,indx))
+			ME_list.extend(B.Op(J,Sopstr,Popstr,indx))
 	
 		ME_list=asarray(ME_list).T.tolist()
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1])
@@ -100,7 +105,7 @@ def DynamicHs(B,dynamic,dtype):
 		H=H.tocsr()
 		H.sum_duplicates()
 		H.eliminate_zeros()
-		Dynamic_Hs.append((List[2],H))
+		Dynamic_Hs.append((List[3],H))
 
 	return tuple(Dynamic_Hs)
 
@@ -114,11 +119,13 @@ def DynamicHs(B,dynamic,dtype):
 
 
 class Hamiltonian1D:
-	def __init__(self,static,dynamic,L,**init_params):
+	def __init__(self,static,dynamic,L,Nph,**init_params):
 		"""
 		This function intializes the Hamtilonian. You can either initialize with symmetries, or an instance of Basis1D.
 		Note that if you initialize with a basis it will ignore all symmetry inputs.
 		"""
+		Nph=init_params.get("Nph")
+
 		Nup=init_params.get("Nup")
 		kblock=init_params.get("kblock")
 		zblock=init_params.get("zblock")
@@ -132,7 +139,7 @@ class Hamiltonian1D:
 		if dtype == None:
 			dtype=complex128
 		if basis == None:  
-			basis=Basis1D(L,Nup=Nup,a=a,kblock=kblock,zblock=zblock,pblock=pblock,pzblock=pzblock)
+			basis=Basis1D(L,Nph=Nph,Nup=Nup,a=a,kblock=kblock,zblock=zblock,pblock=pblock,pzblock=pzblock)
 		if not isinstance(basis,Basis1D):
 			raise TypeError("basis is not instance of Basis1D")
 		if dtype not in supported_dtypes:
@@ -142,6 +149,7 @@ class Hamiltonian1D:
 		self.static=static
 		self.dynamic=dynamic
 		self.L=L
+		self.Nph=Nph
 		self.Ns=basis.Ns
 		self.dtype=dtype
 		if self.Ns > 0:
