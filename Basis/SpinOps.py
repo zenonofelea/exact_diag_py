@@ -9,26 +9,8 @@ class SpinPhotonOpError(Exception):
 		return self.message
 
 
-def ElegantPair(x,y): #arrays of integers x and y
-	x = np.asarray(x)
-	y = np.asarray(y)
-	if x==np.max([x,y]):
-		z = x**2 + x + y 
-	else:
-		z = y**2 + x
-	return int(z.tolist())
 
-
-def ElegantUnpair(z): #integer z
-	z = int( np.asarray(z) )
-	if z - np.floor(np.sqrt(z))**2 < np.floor( np.sqrt(z) ):
-		x,y =  z - np.floor(np.sqrt(z))**2, np.floor( np.sqrt(z) )
-	else:
-		x,y =  np.floor(np.sqrt(z)), z - np.floor(np.sqrt(z))**2 - np.floor(np.sqrt(z))
-	return int(x.tolist()), int(y.tolist())
-
-
-def SpinPhotonOp(s,Sopstr,Popstr,indx):
+def SpinPhotonOp(s,Sopstr,Popstr,indx,Nph=0):
 	if len(indx) != len(Sopstr):
 		raise SpinPhotonOpError("Dimension mismatch of Sopstr and indx")
 
@@ -75,7 +57,8 @@ def SpinPhotonOp(s,Sopstr,Popstr,indx):
 			if n == 0: n=ph; ME=0.0; break # d operator kills the state --> end loop
 			else: ME*=np.sqrt(n); n = n-1; 
 		elif Popstr[i] == "c": # photon creation operator
-			ME*=np.sqrt(n+1); n = n+1;
+			if n == Nph: n=ph; ME=0.0; break # c operator kills the state --> end loop // finite-size constraint on HO basis
+			else: ME*=np.sqrt(n+1); n = n+1;
 		else:
 			raise SpinPhotonOpError("operator symbol "+Popstr[i]+" not recognized")
 

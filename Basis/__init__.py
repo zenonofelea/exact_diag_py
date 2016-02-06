@@ -26,11 +26,12 @@ class Basis1D:
 		self.pblock=pblock
 		self.pzblock=pzblock
 		self.Ns=self.B.Ns
+		self.Ns_tot=self.B.Ns_tot
 
 	def RefState(self,s):
 		return self.B.RefState(s)
 
-	def Op(self,J,Sopstr,Popstr,indx):
+	def Op(self,J,Sopstr,Popstr,indx,Nph):
 		return self.B.Op(J,Sopstr,Popstr,indx)
 
 

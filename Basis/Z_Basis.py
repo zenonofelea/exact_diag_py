@@ -26,24 +26,6 @@ class BasisError(Exception):
 		return self.message
 
 
-def ElegantPair(x,y): #arrays of integers x and y
-	x = np.asarray(x)
-	y = np.asarray(y)
-	if x==np.max([x,y]):
-		z = x**2 + x + y 
-	else:
-		z = y**2 + x
-	return int(z.tolist())
-
-
-def ElegantUnpair(z): #integer z
-	z = int( np.asarray(z) )
-	if z - np.floor(np.sqrt(z))**2 < np.floor( np.sqrt(z) ):
-		x,y =  z - np.floor(np.sqrt(z))**2, np.floor( np.sqrt(z) )
-	else:
-		x,y =  np.floor(np.sqrt(z)), z - np.floor(np.sqrt(z))**2 - np.floor(np.sqrt(z))
-	return int(x.tolist()), int(y.tolist())
-
 
 def ncr(n, r):
 # this function calculates n choose r used to find the total number of basis states when the magnetization is conserved.
@@ -70,7 +52,8 @@ class Basis:
 			self.Nup=Nup
 			self.Mcon=True 
 			self.symm=True # Symmetry exsists so one must use the search functionality when calculating matrix elements
-			self.Ns=(Nph+1)*ncr(L,Nup) 
+			self.Ns=ncr(L,Nup)
+			self.Ns_tot=(Nph+1)*ncr(L,Nup) 
 			zbasis=vec('L')
 			sp_zbasis = vec('L')
 			sp=sum([2**i for i in xrange(0,Nup)])
@@ -86,14 +69,16 @@ class Basis:
 					print [sp,ph], s
 					zbasis.append(s)
 		else:
-			self.Ns=(Nph+1)*2**L
+			self.Ns=2**L
+			self.Ns_tot=(Nph+1)*2**L
 			self.Mcon=False
 			self.symm=False # No symmetries here. at all so each integer corresponds to the number in the hilbert space.
 			sp_zbasis=xrange(self.Ns)
 			zbasis=[]
-			for i in xrange(self.Ns):
+			for sp in xrange(self.Ns):
 				for ph in xrange(self.Nph+1):
-					s = ElegantPair(i,ph)
+					print [sp,ph]
+					s = ElegantPair(sp,ph)
 					zbasis.append(s)
 			#zbasis=xrange(self.Ns)
 
@@ -121,11 +106,11 @@ class Basis:
 
 	def Op(self,J,Sopstr,Popstr,indx):
 		ME_list=[]
-		for st in xrange(self.Ns):
+		for st in xrange(self.Ns_tot):
 			s1=self.basis[st]
-			ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx)
+			ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx,self.Nph)
 			#print st, s1
-			#print sp2, ph2
+			#print [sp2, ph2], ElegantPair( sp2, ph2 )
 			
 			stt = self.FindZstate(sp2)
 

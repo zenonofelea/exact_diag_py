@@ -1,12 +1,11 @@
-from numpy import array, arange
+from numpy import array, arange, asarray, maximum, floor, sqrt
+#import numpy as np
 
 class BitOpsError(Exception):
 	def __init__(self,message):
 		self.message=message
 	def __str__(self):
 		return self.message
-
-
 
 
 
@@ -102,3 +101,47 @@ def exchangeBits(int_type,i,j):
 def flipBit(int_type,i):
 # flips a single bit from 0->1 or vice versa at bit 'i'
 	return int_type^(1<<i)
+
+
+def ElegantPair(x,y): #arrays of integers x and y
+	x = asarray(x)
+	y = asarray(y)
+	if x==maximum(x,y):
+		z = x**2 + x + y 
+	else:
+		z = y**2 + x
+	return int(z.tolist())
+
+
+def ElegantUnpair(z): #integer z
+	z = int( asarray(z) )
+	if z - floor(sqrt(z))**2 < floor( sqrt(z) ):
+		x,y =  z - floor(sqrt(z))**2, floor( sqrt(z) )
+	else:
+		x,y =  floor(sqrt(z)), z - floor(sqrt(z))**2 - floor(sqrt(z))
+	return int(x.tolist()), int(y.tolist())
+
+
+"""
+
+def ElegantPair(x,y): #arrays of integers x and y
+	x = np.asarray(x)
+	y = np.asarray(y)
+	if x==np.maximum(x,y):
+		z = x**2 + x + y 
+	else:
+		z = y**2 + x
+	return int(z.tolist())
+
+
+def ElegantUnpair(z): #integer z
+	z = int( np.asarray(z) )
+	if z - np.floor(np.sqrt(z))**2 < np.floor( np.sqrt(z) ):
+		x,y =  z - np.floor(np.sqrt(z))**2, np.floor( np.sqrt(z) )
+	else:
+		x,y =  np.floor(np.sqrt(z)), z - np.floor(np.sqrt(z))**2 - np.floor(np.sqrt(z))
+	return int(x.tolist()), int(y.tolist())
+
+
+"""
+

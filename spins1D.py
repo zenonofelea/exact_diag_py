@@ -43,17 +43,17 @@ def StaticH(B,static,dtype):
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(B.Op(J,Sopstr,Popstr,indx))
+			ME_list.extend(B.Op(J,Sopstr,Popstr,indx,B.Nph))
 
 	if static: # if static is not an empty list []:
 		# there is no way to tranpose a list so we must convert to array, this process will convert all parts of the list to the most compatible type.
 		ME_list=asarray(ME_list).T.tolist() # transpose list so that it is now [[row,...],[col,...],[ME,...]] which is how coo_matrix is constructed.
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1]) # convert the indices back to integers 
 		ME_list[2]=map( lambda a:int(abs(a)), ME_list[2])	# convert the indices back to integers
-		#print "ME_list[0]", ME_list[0]
-		#print "ME_list[1]", ME_list[1]
-		#print "ME_list[2]", ME_list[2]
-		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns,B.Ns),dtype=dtype) # construct coo_matrix
+		print "ME_list[0]", ME_list[0]
+		print "ME_list[1]", ME_list[1]
+		print "ME_list[2]", ME_list[2]
+		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns_tot,B.Ns_tot),dtype=dtype) # construct coo_matrix
 		H=H.tocsr() # convert to csr_matrix
 		H.sum_duplicates() # sum duplicate matrix elements
 		H.eliminate_zeros() # remove all zero matrix elements
@@ -96,12 +96,12 @@ def DynamicHs(B,dynamic,dtype):
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME_list.extend(B.Op(J,Sopstr,Popstr,indx))
+			ME_list.extend(B.Op(J,Sopstr,Popstr,indx,B.Nph))
 	
 		ME_list=asarray(ME_list).T.tolist()
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1])
 		ME_list[2]=map( lambda a:int(abs(a)), ME_list[2])
-		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns,B.Ns),dtype=dtype)
+		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns_tot,B.Ns_tot),dtype=dtype)
 		H=H.tocsr()
 		H.sum_duplicates()
 		H.eliminate_zeros()
