@@ -40,15 +40,15 @@ def ncr(n, r):
 # Basis classes must have the functionality of finding the matrix elements built in. This way, the function for constructing 
 # the hamiltonian is universal and the basis object takes care of constructing the correct matrix elements based on its internal symmetry. 
 class Basis:
-	def __init__(self,L,Nph=0,Nup=None):
+	def __init__(self,L,Nph=0,Nup=None,Ntot=None):
 		# This is the constructor of the class Basis:
 		#		L: length of chain
 		#		Nup: number of up spins if restricting magnetization sector. 
 		self.L=L
 		self.Nph=Nph
-		if (type(Nup) is int) and (type(Nph) is int):
+		if type(Nup) is int:
 			if Nup < 0 or Nup > L: raise BasisError("0 <= Nup <= "+str(L))
-			if Nph < 0: raise BasisError("0 <= Nph ")
+			if Nph != 0: raise BasisError("0 <= Nph ")
 			self.Nup=Nup
 			self.Mcon=True 
 			self.symm=True # Symmetry exsists so one must use the search functionality when calculating matrix elements
@@ -66,8 +66,28 @@ class Basis:
 				sp_zbasis.append(sp)
 				for ph in xrange(self.Nph+1):
 					s = ElegantPair(sp,ph)
-					print [sp,ph], s
+					#print [sp,ph], s
 					zbasis.append(s)
+		elif type(Ntot) is int:
+			if Ntot < 0 or Ntot > Nph+1: raise BasisError("0 < Ntot < "+str(Nph+1))
+			self.Ns=0 #2**L
+			self.Ns_tot=0 #(Nph+1)*2**L
+			self.Mcon=False
+			self.symm=False # No symmetries here. at all so each integer corresponds to the number in the hilbert space.
+			sp_zbasis=[] #xrange(self.Ns)
+			zbasis=[]
+			for sp in xrange(2**L):
+				for ph in xrange(self.Nph+1):
+					#print ElegantPair(sp,ph),[sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L)), sum(int2bin(sp,L))+ph
+					aux=True
+					if sum(int2bin(sp,L)) + ph==Ntot:
+						s = ElegantPair(sp,ph)
+						zbasis.append(s)
+						self.Ns_tot = self.Ns_tot+1
+						if aux==True:
+							sp_zbasis.append(sp)
+							self.Ns = self.Ns+1
+							aux=False
 		else:
 			self.Ns=2**L
 			self.Ns_tot=(Nph+1)*2**L
@@ -77,15 +97,19 @@ class Basis:
 			zbasis=[]
 			for sp in xrange(self.Ns):
 				for ph in xrange(self.Nph+1):
-					print [sp,ph]
+					#print [sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L))
 					s = ElegantPair(sp,ph)
 					zbasis.append(s)
 			#zbasis=xrange(self.Ns)
 
 		self.basis=zbasis # total spin + photon basis
 		self.sp_basis=sp_zbasis #spin basis only
-		print zbasis
-		print sp_zbasis
+		"""
+		print "zbasis:", zbasis
+		print "Ns_tot", self.Ns_tot
+		print "sp_basis:", sp_zbasis
+		print "Ns", self.Ns
+		"""
 
 
 	def FindZstate(self,s):
@@ -109,13 +133,20 @@ class Basis:
 		for st in xrange(self.Ns_tot):
 			s1=self.basis[st]
 			ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx,self.Nph)
+
+			
 			#print st, s1
 			#print [sp2, ph2], ElegantPair( sp2, ph2 )
 			
 			stt = self.FindZstate(sp2)
 
 			if stt>=0:
-				stt = self.basis.index( ElegantPair( sp2, ph2 ) )
+				z = ElegantPair( sp2, ph2 )
+				if z in self.basis:
+					stt = self.basis.index( z )
+				else:
+					stt=-1
+
 			ME_list.append([J*ME,st,stt])
 
 		return ME_list

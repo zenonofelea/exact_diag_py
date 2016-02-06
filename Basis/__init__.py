@@ -4,7 +4,7 @@ from OBC_Basis import OpenBasis1D
 import BitOps
 
 class Basis1D:
-	def __init__(self,Length,Nph,Nup=None,kblock=None,a=1,zblock=None,pblock=None,pzblock=None):
+	def __init__(self,Length,Nph,Nup=None,Ntot=None,kblock=None,a=1,zblock=None,pblock=None,pzblock=None):
 
 		# testing blocks for basis
 		if (type(kblock) is int):
@@ -15,7 +15,7 @@ class Basis1D:
 		elif (type(zblock) is int) or (type(pblock) is int) or (type(pzblock) is int):
 			self.B=OpenBasis1D(Length,Nup=Nup,zblock=zblock,pblock=pblock,pzblock=pzblock)
 		else:
-			self.B=Basis(Length,Nph=Nph,Nup=Nup)
+			self.B=Basis(Length,Nph=Nph,Nup=Nup,Ntot=Ntot)
 		
 		self.Nph=Nph
 
