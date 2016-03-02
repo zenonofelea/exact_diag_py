@@ -283,7 +283,6 @@ def Kullback_Leibler_div(p1,p2):
 	return np.multiply( p1, log( np.divide(p1,p2) ) ).sum()
 
 
-# calculate energy as a function of time after a quench
 def Observable_vs_time(psi,V2,E2,Obs,times):
 	# psi: initial state
 	# V2, E2: matrix w/ eigenbasis and vector of eogenvalues of post-quench Hamiltonian H2
@@ -313,7 +312,7 @@ def Observable_vs_time(psi,V2,E2,Obs,times):
 	# loop over time vector
 	for m in xrange(Lt):
 		# psi_time[:,m] = psit(c_nF,times[m])
-		Expt_time[m] = real( psit(c_n,times[m]).conjugate().transpose().dot( Obs.dot(psit(c_n,times[m]),0) )  )
+		Expt_time[m] = np.real( reduce( np.dot, [psit(c_n,times[m]).conjugate().T, Obs, psit(c_n,times[m]) ]  )  )
 
 	return Expt_time
 

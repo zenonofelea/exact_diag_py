@@ -86,6 +86,9 @@ class Basis:
 			s1=self.basis[st]
 			ME,s2=SpinOp(s1,opstr,indx)
 			stt=self.FindZstate(s2)
+
+			print s2, [st,stt]
+
 			ME_list.append([J*ME,st,stt])
 		return ME_list
 
