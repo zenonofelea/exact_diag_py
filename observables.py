@@ -1,25 +1,25 @@
-from ED_python_public.spins1D import Hamiltonian1D
-from ED_python_public.Basis import Basis1D
+#from ED_python_public.spins1D import Hamiltonian1D
+#from ED_python_public.Basis import Basis1D
+from exact_diag_py.hamiltonian import hamiltonian
+from exact_diag_py.basis import basis1d
 from numpy import *
 import numpy as np
 import scipy as sp
 
-L=6
+import sys
+import os
 
 
-'''
-Q=[[1.0j,i,(i+1)%L,(i+2)%L] for i in xrange(L)]
-Qcc=[[-1.0j,i,(i+1)%L,(i+2)%L] for i in xrange(L)]
-U=[[1.0,i,(i+1)%L] for i in xrange(L)]
-h=[[1.0,i] for i in xrange(L)]
-'''
+
+L=int(sys.argv[1])
+
 
 PBC = 0
 
 U = 1.0
-J0 = sqrt(3)
+J0 = 1.0
 Q=sqrt(3);
-h=0;
+h=0*13.33;
 
 zeta = 0.6; #driving amplitude in rot frame
 dzeta = 0.2*zeta; #driving amplitude in rot frame
@@ -31,10 +31,13 @@ betavec = [1.0, 1.0/100]
 
 #define parameter strings over the lattice
 
-hstr = [[h,i] for i in xrange(L)]
+hstr = [[h,L-1]] #[[h,i] for i in xrange(L)]
 hstaggstr = [[h*(-1)**i,i] for i in xrange(L)]
 
 if PBC==1:
+
+	Jstr        = [[-J,i,(i+1)%L] for i in xrange(0,L,2)]
+	Jprimestr   = [[-Jprime,i,(i+1)%L] for i in xrange(1,L,2)]
 
 	J0str   = [[J0,i,(i+1)%L] for i in xrange(L)]
 	J0ccstr = [[J0.conjugate(),i,(i+1)%L] for i in xrange(L)]
@@ -42,6 +45,9 @@ if PBC==1:
 	Ustr    = [[U,i,(i+1)%L] for i in xrange(L)]
 
 	Qstr    = [[Q,i,(i+1)%L] for i in xrange(L)]
+
+	#basis=basis1d(L,Nup=L/2,kblock=0,pblock=1,zblock=1)
+	basis=basis1d(L)
 
 elif PBC==0:
 
@@ -55,16 +61,20 @@ elif PBC==0:
 
 	Qstr    = [[Q,i,(i+1)%L] for i in xrange(L-1)]
 
+	#basis=basis1d(L,Nup=L/2,pblock=1,zblock=1)
+	basis=basis1d(L)
 
 #####################################################################
 
-#staticSSH=[['+-',Jstr],['-+',Jstr],['+-',Jprimestr],['-+',Jprimestr], ['zz',Ustr]] 
+staticSSH=[['+-',Jstr],['-+',Jstr],['+-',Jprimestr],['-+',Jprimestr], ['zz',Ustr],['x',hstr]] 
 
 #static=[['z',hstr],['+-',J0str],['-+',J0ccstr],['zz',Ustr],['+z-',Qstr],['-z+',Qccstr]]
 #static1=[ ['zz',Ustr]]
 static1=[['+-',J0str],['-+',J0ccstr],['zz',Ustr]]    
 static2=[['+-',J0str],['-+',J0ccstr],['zz',Qstr]] 
 dynamic=[]; #[['x',hstr,A]]
+
+Ns = basis.Ns
 
 #####################################################################
 
@@ -73,72 +83,127 @@ dynamic=[]; #[['x',hstr,A]]
 # use for checking the rest
 #basis=Basis1D(L,Nup=L/2,pblock=1)
 #basis=Basis1D(L,Nup=L/2,zblock=1)
-basis=Basis1D(L,Nup=L/2,pblock=1,zblock=1)
 
 
-#H_SSH=Hamiltonian1D(staticSSH,dynamic,L,basis=basis)
-H1=Hamiltonian1D(static1,dynamic,L,basis=basis)
-H2=Hamiltonian1D(static2,dynamic,L,basis=basis)
+
+H_SSH=hamiltonian(staticSSH,dynamic,L,basis=basis,pauli=False)
+H1=hamiltonian(static1,dynamic,L,basis=basis)
+H2=hamiltonian(static2,dynamic,L,basis=basis)
 
 #print 'hermiticity error is' ,np.linalg.norm( H_1.todense() - H_1.todense().conjugate().transpose() )
 
 #print H1.todense()
-#ESSH,VSSH = H_SSH.DenseEV(0)
-E1,V1 = H1.DenseEV(0)
-E2,V2 = H2.DenseEV(0)
+ESSH,VSSH = H_SSH.eigh(overwrite_a=True, overwrite_b=True) 
+E1,V1 = H1.eigh(overwrite_a=True, overwrite_b=True) 
+E2,V2 = H2.eigh(overwrite_a=True, overwrite_b=True) 
 
 # calculate GS
-#psi1GS = V1[:,0]
-E1GS = E1[0]
+psiGS = np.real( VSSH[:,0] )
+E1GS = ESSH[0]
 
 #print psi1GS
-#print E1
-
-#print psiGS
+print E1GS/L
 
 
 
-
-def Renyi_entropy(L_A,L,psi, init_site=1,alpha=1):
-	# L_A: length of subsystem A
+def Entanglement_entropy(L,psi,subsys=[i for i in xrange( int(L/2) )],basis=None,alpha=1.0, DM=False):
 	# psi: pure quantum state
+	# subsys: a list of integers modelling the site numbers of the subsystem
+	# basis: the basis of the Hamiltonian: needed only when symmetries are used
 	# alpha: Renyi parameter
-	# init_site: initial site counted from which subsystem A spans L_A sites to the right
+	# DM: if on returns the reduced density matrix corresponding to psi
+
+	variables = ["Sent"]
+
+	if np.any(DM):
+		variables.append("DM")
+
+
+	# turn the following messages into WARNINGS	
 	
-	if alpha < 0:
+	if alpha < 0.0:
 		print "alpha must be a nonnegative real number"
 
-	if init_site > L-1:
-		print "init_site cannot exceed lattice site number"	
+	if len(subsys) > np.floor(L/2):
+		print "subsystem length cannot exceed half the total lattice site number"
+
+	if max(subsys) > L-1:
+		print "subsystem definition contains sites exceeding the total lattice site number"
+
 	
+	# re-write the state in the initial basis
+	if len(psi)<2**L:
+		print "need to parse the basis variable"
+		psi = np.asarray( basis.get_vec(psi,sparse=True).todense().T )[0,:]
+	del basis
 
 	#calculate H-space dimensions of the subsystem and the system
+	L_A = len(subsys)
 	Ns_A = 2**L_A
+	
+	# define lattice indices putting the subsystem to the left
+	for i in xrange(L):
+		if i in subsys:
+			continue
+		else:
+			subsys.append(i)
 
-	if init_site == 0:
-		Ns_Ac = 2**(L-L_A) # dim of H-space of complement of A
-		v = np.real( np.reshape(psi, (Ns_A, Ns_Ac)) ) #cast initial state into a vector of the tensor product space
-	else:
-		Ns_Ac_l = 2**(init_site) # dim of H-space of complement left of A
-		Ns_Ac_r = 2**(L-L_A - init_site)  # dim of H-space of complement right of A
-		v = np.real( np.reshape(psi, (Ns_A, Ns_Ac_l*Ns_Ac_r)) ) #cast initial state into a vector of the tensor product space
-		v = np.roll(v,Ns_Ac_l, axis=1) # permute columns to put the dimension of subsystem A at the right place
+	'''
+	the algorithm for the entanglement entropy of an arbitrary subsystem goes as follows:
 
+	1) the initial state psi has 2^L entries corresponding to the spin-z configs
+	2) reshape psi into a 2x2x2x2x...x2 dimensional array (L products in total). Call this array v.
+	3) v should satisfy the property that v[0,1,0,0,0,1,...,1,0], total of L entries, should give the entry of psi 
+	   corresponding to the spin-z basis vector (0,1,0,0,0,1,...,1,0). This ensures a correspondence of the v-indices
+	   (and thus the psi-entries) to the L lattice sites.
+	4) fix the lattice sites that define the subsystem L_A, and reshuffle the array v according to this: e.g. if the 
+ 	   subsystem consistes of sites (k,l) then v should be reshuffled such that v[(k,l), (all other sites)]
+ 	5) reshape v[(k,l), (all other sites)] into a 2D array of dimension ( L_A x L/L_A ) and proceed with the SVD as below  
+
+	'''
+
+	# performs 2) and 3)
+	v = np.reshape(psi, tuple([2 for i in xrange(L)] ) )
+	del psi
+	# performs 4)
+	v = np.transpose(v, axes=subsys) 
+	# performs 5)
+	v = np.reshape(v, ( Ns_A, Ns/Ns_A) )
+	
+	
 	# apply singular value decomposition
-	gamma = sp.linalg.svd(v, compute_uv=False, overwrite_a=True, check_finite=True)
+	if DM==False:
+		gamma = sp.linalg.svd(v, compute_uv=False, overwrite_a=True, check_finite=True)
+	else:
+		U, gamma, V = sp.linalg.svd(v, full_matrices=False, overwrite_a=True, check_finite=True)
+		# calculate reduced density matrix DM	
+		DM =   reduce( np.dot, [U, np.diag(gamma**2) , U.T.conjugate() ] )   #.dot( dot( np.einsum('i,ij->ij',gamma,Vh) ).dot(Vh)  )
+		del U, V	
+		print "NEED TO TEST this reduced DM against something known!!!"
+	del v
+
 
 	# calculate Renyi entropy
 	if any(gamma == 1.0):
-		return 0
+		Sent = 0.0
 	else:
 		if alpha == 1.0:
-			return -1./L_A*( ( abs(gamma)**2).dot( 2*log( abs(gamma)  ) ) ).sum()
+			Sent = -1./L_A*( ( abs(gamma)**2).dot( 2*log( abs(gamma)  ) ) ).sum()
 		else:
-			return  1./L_A*( 1./(1-alpha)*log( (gamma**alpha).sum() )  )
+			Sent =  1./L_A*( 1./(1-alpha)*log( (gamma**alpha).sum() )  )
 
-#S_ent = Renyi_entropy(L/2,L,psi1GS,alpha=3,init_site=2)
-#print "entanglement entropy:", [0.5*S_ent, log(2)]	
+	# define dictionary with outputs
+	return_dict = {}
+	for i in range(len(variables)):
+		return_dict[variables[i]] = vars()[variables[i]]
 
+	return return_dict
+
+S_ent0 = Entanglement_entropy(L,psiGS,subsys=[0,1],alpha=1,basis=basis,DM=True)
+print "entanglement entropy:", S_ent0['Sent']
+print "DM:", S_ent0['DM']
+
+br
 
 def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1.0, Obs=False, Ed=False,S_double_quench=False,Sd_Renyi=False,deltaE=False):
 	# V1, V2:  matrices with pre and post quench eigenbases
