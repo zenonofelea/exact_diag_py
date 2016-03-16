@@ -14,12 +14,12 @@ def SpinPhotonOp(s,Sopstr,Popstr,indx,Nph=0):
 	if len(indx) != len(Sopstr):
 		raise SpinPhotonOpError("Dimension mismatch of Sopstr and indx")
 
+	#if len(indx) != len(Popstr):
+	#		raise SpinPhotonOpError("Dimension mismatch of Popstr and indx")	
+
 	#print "TYPE:", type(s)
 	# decompose integer s into the spin sp and photon ph integers
 	sp, ph = ElegantUnpair(s)
-
-	#print "VALUES:", sp, ph
-	#print "TYPE:", type(sp), type(ph)
 
 	ME=1.0; r=sp; n = ph;
 	NSops=len(Sopstr)

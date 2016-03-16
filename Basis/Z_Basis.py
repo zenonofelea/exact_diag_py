@@ -44,11 +44,13 @@ class Basis:
 		# This is the constructor of the class Basis:
 		#		L: length of chain
 		#		Nup: number of up spins if restricting magnetization sector. 
+		#		Nph: number of photons
+		# 		Ntot: total number of spin ups plus the number of photons
 		self.L=L
 		self.Nph=Nph
 		if type(Nup) is int:
 			if Nup < 0 or Nup > L: raise BasisError("0 <= Nup <= "+str(L))
-			if Nph != 0: raise BasisError("0 <= Nph ")
+			if Nph != 0: raise BasisError("0 == Nph") # to work at fixed Magnetisation no photons are allowed
 			self.Nup=Nup
 			self.Mcon=True 
 			self.symm=True # Symmetry exsists so one must use the search functionality when calculating matrix elements
@@ -68,14 +70,15 @@ class Basis:
 					s = ElegantPair(sp,ph)
 					#print [sp,ph], s
 					zbasis.append(s)
-		elif type(Ntot) is int:
-			if Ntot < 0 or Ntot > Nph+1: raise BasisError("0 < Ntot < "+str(Nph+1))
-			self.Ns=0 #2**L
-			self.Ns_tot=0 #(Nph+1)*2**L
+		elif type(Ntot) is int: # energy conserving models: an absorbed photon leads to a flipped spin and vice-versa
+			#if Ntot < 0 or Ntot > Nph+1: raise BasisError("0 < Ntot < "+str(Nph+1))
+			if Ntot < 0 or Ntot - Nph > self.L: raise BasisError("0 < Ntot =< "+str(Nph+self.L))
+			self.Ns=0 # preallocate total number of spin states only
+			self.Ns_tot=0 #preallocate total number of full spin + photon states
 			self.Mcon=False
 			self.symm=False # No symmetries here. at all so each integer corresponds to the number in the hilbert space.
-			sp_zbasis=[] #xrange(self.Ns)
-			zbasis=[]
+			sp_zbasis=[] #spin_zbasis
+			zbasis=[] # total spin+photon zbasis
 			for sp in xrange(2**L):
 				for ph in xrange(self.Nph+1):
 					#print ElegantPair(sp,ph),[sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L)), sum(int2bin(sp,L))+ph
@@ -88,19 +91,18 @@ class Basis:
 							sp_zbasis.append(sp)
 							self.Ns = self.Ns+1
 							aux=False
-		else:
+		else: # non-energy conserving models
 			self.Ns=2**L
 			self.Ns_tot=(Nph+1)*2**L
 			self.Mcon=False
 			self.symm=False # No symmetries here. at all so each integer corresponds to the number in the hilbert space.
-			sp_zbasis=xrange(self.Ns)
-			zbasis=[]
+			sp_zbasis=xrange(self.Ns) #spin_zbasis
+			zbasis=[] # total spin+photon zbasis
 			for sp in xrange(self.Ns):
 				for ph in xrange(self.Nph+1):
 					#print [sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L))
 					s = ElegantPair(sp,ph)
 					zbasis.append(s)
-			#zbasis=xrange(self.Ns)
 
 		self.basis=zbasis # total spin + photon basis
 		self.sp_basis=sp_zbasis #spin basis only
@@ -144,10 +146,13 @@ class Basis:
 				z = ElegantPair( sp2, ph2 )
 				if z in self.basis:
 					stt = self.basis.index( z )
-				else:
-					stt=-1
 
-			ME_list.append([J*ME,st,stt])
+					#print [J*ME,st,stt]
+					#print "_____"
+					ME_list.append([J*ME,st,stt])
+		
+
+			
 
 		return ME_list
 

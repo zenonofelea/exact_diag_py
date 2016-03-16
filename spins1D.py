@@ -37,8 +37,8 @@ def StaticH(B,static,dtype):
 	ME_list=[] # this is a list which stores the matrix elements as lists [[row,col,ME],...] for the whole hamiltonian. 
 	for i in xrange(len(static)): 
 		List=static[i]
-		Sopstr=List[0]
-		Popstr=List[1]
+		Sopstr=List[0] # spin operators	
+		Popstr=List[1] # photon operators
 		bonds=List[2]
 		for bond in bonds:
 			J=bond[0]
@@ -46,13 +46,24 @@ def StaticH(B,static,dtype):
 			ME_list.extend(B.Op(J,Sopstr,Popstr,indx,B.Nph))
 
 	if static: # if static is not an empty list []:
+
+		#print ME_list
+		#print "_______"
+
 		# there is no way to tranpose a list so we must convert to array, this process will convert all parts of the list to the most compatible type.
 		ME_list=asarray(ME_list).T.tolist() # transpose list so that it is now [[row,...],[col,...],[ME,...]] which is how coo_matrix is constructed.
+		
+		#print ME_list[0]
+		#print ME_list[1]
+		#print ME_list[2]
+		#print "_______"
+
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1]) # convert the indices back to integers 
 		ME_list[2]=map( lambda a:int(abs(a)), ME_list[2])	# convert the indices back to integers
 		#print "ME_list[0]", ME_list[0]
 		#print "ME_list[1]", ME_list[1]
 		#print "ME_list[2]", ME_list[2]
+		#print B.Ns_tot
 		H=coo_matrix((ME_list[0],(ME_list[1],ME_list[2])),shape=(B.Ns_tot,B.Ns_tot),dtype=dtype) # construct coo_matrix
 		H=H.tocsr() # convert to csr_matrix
 		H.sum_duplicates() # sum duplicate matrix elements
