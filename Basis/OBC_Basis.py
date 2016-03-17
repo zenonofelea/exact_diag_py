@@ -59,6 +59,8 @@ class OpenBasis1D(Basis):
 		# This function in the constructor of the class:
 		#		L: length of the chain
 		#		Nup: number of up spins if restricting magnetization sector. 
+		#		Nph: number of photons
+		# 		Ntot: total number of spin ups plus the number of photons
 		#		pblock: the number associated with parity quantum number of the block
 		#		zblock: the number associated with spin inversion quantum number of the block
 		#		pzblock: the number associated with parity + spin inversion quantum number of the block
@@ -98,12 +100,10 @@ class OpenBasis1D(Basis):
 			if (type(pzblock) is int) and (self.pzblock != self.pblock*self.zblock):
 				print "OpenBasis1D wanring: contradiction between pzblock and pblock*zblock, assuming the block denoted by pblock and zblock" 
 			self.Npz = []
-			#self.basis = []
 			for s in sp_basis:
 				rpz = CheckStateZ(zblock,s,self.L)
 				rpz = CheckStateP(pblock,s,self.L,rp=rpz)
 				rpz = CheckStatePZ(pblock*zblock,s,self.L,rpz=rpz)
-#				print rpz, int2bin(s,self.L)
 				if rpz > 0:
 					self.sp_basis.append(s)
 					self.Npz.append(rpz)
@@ -118,10 +118,8 @@ class OpenBasis1D(Basis):
 			self.pblock = pblock
 			self.z = zblock
 			self.Np = []
-			#self.basis = []
 			for s in sp_basis:
 				rp=CheckStateP(pblock,s,self.L)
-#				print rp, int2bin(s,self.L)
 				if rp > 0:
 					self.sp_basis.append(s)
 					self.Np.append(rp)
@@ -134,10 +132,8 @@ class OpenBasis1D(Basis):
 			self.PZcon = False
 			self.symm = True
 			self.z = zblock
-			#self.basis = []
 			for s in sp_basis:
 				rz=CheckStateZ(zblock,s,self.L)
-#				print rz, int2bin(s,self.L)
 				if rz > 0:
 					self.sp_basis.append(s)
 			self.Ns=len(self.sp_basis)
@@ -150,10 +146,8 @@ class OpenBasis1D(Basis):
 			self.symm = True
 			self.pzblock = pzblock
 			self.Npz = []
-			#self.basis = []
 			for s in sp_basis:
 				rpz = CheckStatePZ(pzblock,s,self.L)
-#				print rpz, int2bin(s,self.L)
 				if rpz > 0:
 					self.sp_basis.append(s)
 					self.Npz.append(rpz)
@@ -166,9 +160,8 @@ class OpenBasis1D(Basis):
 		# add photon counterpart to the basis
 		for sp in self.sp_basis:
 			for ph in xrange(self.Nph+1):
-				#print [sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L))
 				s = ElegantPair(sp,ph)
-				if s in basis:
+				if s in basis: #includes the symmetries from Z_Basis
 					self.basis.append(s)
 		self.Ns_tot=len(self.basis)	
 	
@@ -223,6 +216,8 @@ class OpenBasis1D(Basis):
 
 				s1=self.basis[st_tot]
 				sp1, ph1 = ElegantUnpair(s1)
+				# need the index in the spin basis, but some states can appear twice when symmetries are on, in which 
+				# case ElegantUnpair returns the first found index. 
 				if self.sp_basis.count(sp1)==2:
 					if aux==True:
 						st = self.sp_basis.index(sp1) + 1

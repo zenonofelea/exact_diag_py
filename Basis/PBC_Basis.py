@@ -186,9 +186,17 @@ class PeriodicBasis1D(Basis):
 	def __init__(self,L,Nph=0,Nup=None,Ntot=None,kblock=None,pblock=None,zblock=None,pzblock=None,a=1):
 		# This function in the constructor of the class:
 		#		L: length of the chain
-		#		Nup: number of up spins if restricting magnetization sector. 
+		#		Nup: number of up spins if restricting magnetization sector.
+		#		Nph: number of photons
+		# 		Ntot: total number of spin ups plus the number of photons 
 		#		kblock: the number associated with the momentum block which basis is restricted to (i.e. k=2*pi*kblock/L)
+		#		pblock: the number associated with parity quantum number of the block
+		#		zblock: the number associated with spin inversion quantum number of the block
+		#		pzblock: the number associated with parity + spin inversion quantum number of the block
  		#		a: number of lattice spaces between unit cells.
+
+ 		#	Note: the PZ block assumes the Hamiltonian is invariant under the total transformation PZ, 
+		#				but not each transformation separately.
 
 		Basis.__init__(self,L,Nph,Nup,Ntot) # this calls the initialization of the basis class which initializes the basis list given Nup and Mcon/symm
 		sp_basis=self.sp_basis # take initialized basis from Basis class and store in separate array to access, then overwrite basis.
@@ -228,9 +236,8 @@ class PeriodicBasis1D(Basis):
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
 			self.Nasigma=[]#
 			self.c=vec('I') 
-			self.m=[]#vec('I')
-			#self.basis=vec('L')
-
+			self.m=[]
+			
 			if abs( sin(self.k) ) <= 1E-14: #picks up k = 0, pi modes
 				sigma_r = [+1]
 			else:
@@ -238,7 +245,6 @@ class PeriodicBasis1D(Basis):
 			for s in sp_basis:
 				for sigma in sigma_r:
 					r,mp,mz,mpz=CheckStateTPZ(kblock,L,s,T=a)
-					#print "before: ", sigma, [s,r], [mp,mz,mpz]
 					if mp==-1 and mz==-1 and mpz==-1:
 						if r>0:
 							self.c.append(1)
@@ -301,10 +307,9 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=True
 			self.PZcon=True
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
-			self.Nasigma=[]#vec('I') 
-			self.m=[]#vec('I')
-			#self.basis=vec('L')
-
+			self.Nasigma=[]
+			self.m=[]
+			
 			if abs( sin(self.k) ) <= 1E-14: #picks up k = 0, pi modes
 				sigma_r = [+1]
 			else:
@@ -312,13 +317,11 @@ class PeriodicBasis1D(Basis):
 			for s in sp_basis:
 				for sigma in sigma_r:
 					r,m=CheckStateT_PZ(kblock,L,s,T=a)
-					#print "before: ", sigma, [s,r], [m]
 					if m != -1:
 						if 1 + sigma*pzblock*cos(m*self.k) == 0:
 							r = -1
 						if (sigma == -1) and (1 - sigma*pzblock*cos(m*self.k) != 0):
 							r = -1
-					#print "after: ", sigma, [s,r], [m]		
 					if r>0:
 						if m>=0:
 							Na = 2/float(r)*(1 + sigma*self.pzblock*cos(self.k*m))
@@ -337,10 +340,9 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=True
 			self.Pcon=True
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
-			self.Nasigma=[]#vec('I') 
-			self.m=[]#vec('I')
-			#self.basis=vec('L')
-
+			self.Nasigma=[] 
+			self.m=[]
+			
 			if abs( sin(self.k) ) <= 1E-14: #picks up k = 0, pi modes
 				sigma_r = [+1]
 			else:
@@ -348,17 +350,14 @@ class PeriodicBasis1D(Basis):
 			for s in sp_basis:
 				for sigma in sigma_r:
 					r,m=CheckStateTP(kblock,L,s,T=a)
-					#print "before: ", sigma, [s,r], [m]
 					if m != -1:
 						if 1 + sigma*pblock*cos(m*self.k) == 0:
 							r = -1
 						if (sigma == -1) and (1 - sigma*pblock*cos(m*self.k) != 0):
 							r = -1
-					#print "after: ", sigma, [s,r], [m]		
 					if r>0:
 						if m>=0:
 							Na = 1/float(r)*(1 + sigma*self.pblock*cos(self.k*m))
-							#self.Nasigma.append(sigma*Na)
 						else:
 							Na = 1/float(r)
 						self.Nasigma.append(sigma*Na)
@@ -375,16 +374,14 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=True
 			self.Zcon=True
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
-			self.NaTZ=[]#vec('I') 
-			self.m=[]#vec('I')
-			#self.basis=vec('L')
+			self.NaTZ=[]
+			self.m=[]
+			
 			for s in sp_basis:
 				r,m=CheckStateTZ(kblock,L,s,T=a)
-				#print "before:", [s,r,m]
 				if m != -1:
 					if 1 + zblock*cos(self.k*m) == 0:
 						r=-1
-				#print "after:", [s,r,m]		
 				if r>0:
 					if m >= 0:
 						Na = 2/float(r)*(1 + self.zblock*cos(self.k*m))	
@@ -401,10 +398,9 @@ class PeriodicBasis1D(Basis):
 			self.Kcon=True
 			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
 			self.R=vec('I') 
-			#self.basis=vec('L')
+			
 			for s in sp_basis:
 				r=CheckStateT(kblock,L,s,T=a)
-				#print [s,r]
 				if r > 0:
 					self.R.append(r)
 					self.sp_basis.append(s)
@@ -418,14 +414,11 @@ class PeriodicBasis1D(Basis):
 		# add photon counterpart to the basis
 		for sp in self.sp_basis:
 			for ph in xrange(self.Nph+1):
-				#print [sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L))
 				s = ElegantPair(sp,ph)
-				if s in basis:
+				if s in basis: #includes the symmetries from Z_Basis
 					self.basis.append(s)
 		self.Ns_tot=len(self.basis)	
-		print "spin basis", self.sp_basis
-		print "total basis",self.basis	
-
+		
 
 	def RefState(self,s):
 		# this function takes an integer s which represents a spin configuration in the Sz basis, then tries to find its 
@@ -575,7 +568,8 @@ class PeriodicBasis1D(Basis):
 
 				s1=self.basis[st_tot]
 				sp1, ph1 = ElegantUnpair(s1)
-
+				# need the index in the spin basis, but some states can appear twice when symmetries are on, in which 
+				# case ElegantUnpair returns the first found index. 
 				if self.sp_basis.count(sp1)==2:
 					if aux==True:
 						st = self.sp_basis.index(sp1) + 1
@@ -586,21 +580,17 @@ class PeriodicBasis1D(Basis):
 					st = self.sp_basis.index(sp1)
 					aux=False
 				
-				
-
 				#offdiagonal matrix elements
 				ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx,self.Nph) 
 				#find reference state
 				sp2,l,q,g,qg=self.RefState(sp2)
 
 				stt=self.FindZstate(sp2) # if reference state not found in basis, this is not a valid matrix element.
-				#print "S's", [sp1,sp2]
 				if stt >= 0:
 					z = ElegantPair(sp2,ph2)
-					if z in self.basis:
+					if z in self.basis: # ensure the state still belongs to total spin+photon basis
 						stt_tot = self.basis.index(z)
 						if (self.Kcon and self.Pcon) or (self.Kcon and self.PZcon):
-							#print [st, stt]
 							if abs( sin(self.k) ) <= 1E-14: # k = 0, pi
 								if self.Kcon and self.Pcon and self.Zcon:
 									ME *= J*self.helementTPZ(st, stt, l, q, g)
@@ -640,7 +630,7 @@ class PeriodicBasis1D(Basis):
 											st_i_tot = self.basis.index(z_i)
 
 										ME_list.append([me,st_i_tot,st_i_tot])
-										#print [st_i_tot,st_i_tot]
+				
 								# Eq. {16} in [1]	
 								else: #offdiagonal matrix elements 
 
@@ -681,14 +671,14 @@ class PeriodicBasis1D(Basis):
 												stt_j_tot = self.basis.index(z_j)
 					
 											ME_list.append([me,st_i_tot,stt_j_tot])
-											#print [st_i_tot,stt_j_tot]				
+															
 						elif self.Kcon and self.Zcon:
 							ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zblock**g*exp(-1j*self.k*l)
 							ME_list.append([ME,st_tot,stt_tot])		
 						elif self.Kcon:
 							ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
 							ME_list.append([ME,st_tot,stt_tot])
-							#if st==stt: print l,ME;
+							
 					else:
 						ME = 0.0
 						stt_tot = st_tot
