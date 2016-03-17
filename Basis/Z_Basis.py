@@ -72,7 +72,7 @@ class Basis:
 					zbasis.append(s)
 		elif type(Ntot) is int: # energy conserving models: an absorbed photon leads to a flipped spin and vice-versa
 			#if Ntot < 0 or Ntot > Nph+1: raise BasisError("0 < Ntot < "+str(Nph+1))
-			if Ntot < 0 or Ntot - Nph > self.L: raise BasisError("0 < Ntot =< "+str(Nph+self.L))
+			if Ntot < 0 or Ntot - Nph > self.L or Nph > Ntot: raise BasisError("Nph <= Ntot <= "+str(Nph+self.L))
 			self.Ns=0 # preallocate total number of spin states only
 			self.Ns_tot=0 #preallocate total number of full spin + photon states
 			self.Mcon=False
@@ -143,9 +143,9 @@ class Basis:
 			stt = self.FindZstate(sp2)
 
 			if stt>=0:
-				z = ElegantPair( sp2, ph2 )
+				z = ElegantPair(sp2,ph2)
 				if z in self.basis:
-					stt = self.basis.index( z )
+					stt = self.basis.index(z)
 
 					#print [J*ME,st,stt]
 					#print "_____"

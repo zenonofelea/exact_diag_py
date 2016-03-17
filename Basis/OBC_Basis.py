@@ -55,7 +55,7 @@ def CheckStateZ(z,s,L,rz=2):
 
 
 class OpenBasis1D(Basis):
-	def __init__(self,L,Nup=None,pblock=None,zblock=None,pzblock=None):
+	def __init__(self,L,Nph=0,Nup=None,Ntot=None,pblock=None,zblock=None,pzblock=None):
 		# This function in the constructor of the class:
 		#		L: length of the chain
 		#		Nup: number of up spins if restricting magnetization sector. 
@@ -66,8 +66,14 @@ class OpenBasis1D(Basis):
 		#	Note: the PZ block assumes the Hamiltonian is invariant under the total transformation PZ, 
 		#				but not each transformation separately.
 
-		Basis.__init__(self,L,Nup) # this calls the initialization of the basis class which initializes the basis list given Nup and Mcon/symm
-		zbasis=self.basis # take initialized basis from Basis class and store in separate array to access, then overwrite basis.
+		Basis.__init__(self,L,Nph,Nup,Ntot) # this calls the initialization of the basis class which initializes the basis list given Nup and Mcon/symm
+		
+		sp_basis=self.sp_basis # take initialized basis from Basis class and store in separate array to access, then overwrite basis.
+		basis=self.basis
+
+		self.basis=vec('L')
+		self.sp_basis=vec('L')
+
 		self.Kcon=False # is false by definition
 		self.kblock=None
 		self.a=1
@@ -92,16 +98,16 @@ class OpenBasis1D(Basis):
 			if (type(pzblock) is int) and (self.pzblock != self.pblock*self.zblock):
 				print "OpenBasis1D wanring: contradiction between pzblock and pblock*zblock, assuming the block denoted by pblock and zblock" 
 			self.Npz = []
-			self.basis = []
-			for s in zbasis:
+			#self.basis = []
+			for s in sp_basis:
 				rpz = CheckStateZ(zblock,s,self.L)
 				rpz = CheckStateP(pblock,s,self.L,rp=rpz)
 				rpz = CheckStatePZ(pblock*zblock,s,self.L,rpz=rpz)
 #				print rpz, int2bin(s,self.L)
 				if rpz > 0:
-					self.basis.append(s)
+					self.sp_basis.append(s)
 					self.Npz.append(rpz)
-			self.Ns=len(self.basis)
+			self.Ns=len(self.sp_basis)
 		elif type(pblock) is int:
 			if abs(pblock) != 1:
 				raise BasisError("pblock must be either +/- 1")
@@ -112,14 +118,14 @@ class OpenBasis1D(Basis):
 			self.pblock = pblock
 			self.z = zblock
 			self.Np = []
-			self.basis = []
-			for s in zbasis:
+			#self.basis = []
+			for s in sp_basis:
 				rp=CheckStateP(pblock,s,self.L)
 #				print rp, int2bin(s,self.L)
 				if rp > 0:
-					self.basis.append(s)
+					self.sp_basis.append(s)
 					self.Np.append(rp)
-			self.Ns=len(self.basis)
+			self.Ns=len(self.sp_basis)
 		elif type(zblock) is int:
 			if abs(zblock) != 1:
 				raise BasisError("zblock must be either +/- 1")
@@ -128,13 +134,13 @@ class OpenBasis1D(Basis):
 			self.PZcon = False
 			self.symm = True
 			self.z = zblock
-			self.basis = []
-			for s in zbasis:
+			#self.basis = []
+			for s in sp_basis:
 				rz=CheckStateZ(zblock,s,self.L)
 #				print rz, int2bin(s,self.L)
 				if rz > 0:
-					self.basis.append(s)
-			self.Ns=len(self.basis)
+					self.sp_basis.append(s)
+			self.Ns=len(self.sp_basis)
 		elif type(pzblock) is int:
 			if abs(pzblock) != 1:
 				raise BasisError("pzblock must be either +/- 1")
@@ -144,18 +150,27 @@ class OpenBasis1D(Basis):
 			self.symm = True
 			self.pzblock = pzblock
 			self.Npz = []
-			self.basis = []
-			for s in zbasis:
+			#self.basis = []
+			for s in sp_basis:
 				rpz = CheckStatePZ(pzblock,s,self.L)
 #				print rpz, int2bin(s,self.L)
 				if rpz > 0:
-					self.basis.append(s)
+					self.sp_basis.append(s)
 					self.Npz.append(rpz)
-			self.Ns=len(self.basis)	
+			self.Ns=len(self.sp_basis)	
 		else: 
 			self.Pcon=False
 			self.Zcon=False
 			self.PZcon=False
+
+		# add photon counterpart to the basis
+		for sp in self.sp_basis:
+			for ph in xrange(self.Nph+1):
+				#print [sp,ph],[int2bin(sp,L)], sum(int2bin(sp,L))
+				s = ElegantPair(sp,ph)
+				if s in basis:
+					self.basis.append(s)
+		self.Ns_tot=len(self.basis)	
 	
 
 
@@ -195,7 +210,7 @@ class OpenBasis1D(Basis):
 		return r,q,g,qg
 
 
-	def Op(self,J,opstr,indx):
+	def Op(self,J,Sopstr,Popstr,indx):
 		# This function find the matrix elemement and state which opstr creates
 		# after acting on an inputed state index.
 		#		J: coupling in front of opstr
@@ -204,28 +219,47 @@ class OpenBasis1D(Basis):
 		#		indx: a list of ordered indices which tell which operator in opstr live on the lattice.
 		if self.Pcon or self.Zcon or self.PZcon: # if the user wants to use any symmetries, special care must be taken [1]
 			ME_list=[]
-			for st in xrange(self.Ns):
-				s1=self.basis[st]
-				ME,s2=SpinOp(s1,opstr,indx)
-				s2,q,g,qg=self.RefState(s2)
-				stt=self.FindZstate(s2)
-				#print st,int2bin(s1,self.L),int2bin(exchangeBits(s1,i,j),self.L), stt,int2bin(s2,self.L), q, g, [i,j]
-				if stt >= 0: 
-					if self.Pcon and self.Zcon:
-						ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.zblock**(g)
-					elif self.Pcon:
-						ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
-					elif self.Zcon:
-						ME *=  J*self.z**(g)
-					elif self.PZcon:
-						ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)		
+			for st_tot in xrange(self.Ns_tot):
+
+				s1=self.basis[st_tot]
+				sp1, ph1 = ElegantUnpair(s1)
+				if self.sp_basis.count(sp1)==2:
+					if aux==True:
+						st = self.sp_basis.index(sp1) + 1
+					else:
+						st = self.sp_basis.index(sp1)
+						aux=True
+				else:
+					st = self.sp_basis.index(sp1)
+					aux=False
+
+				ME,sp2,ph2=SpinPhotonOp(s1,Sopstr,Popstr,indx,self.Nph)
+
+				sp2,q,g,qg=self.RefState(sp2)
+				stt=self.FindZstate(sp2)
+				
+				if stt >= 0:
+					z = ElegantPair(sp2,ph2)
+					if z in self.basis:
+						stt_tot = self.basis.index(z) 
+						if self.Pcon and self.Zcon:
+							ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.zblock**(g)
+						elif self.Pcon:
+							ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
+						elif self.Zcon:
+							ME *=  J*self.z**(g)
+						elif self.PZcon:
+							ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)
+					else:
+						ME = 0.0
+						stt_tot = st_tot		
 				else:
 					ME = 0.0
-					stt = st
-				ME_list.append([ME,st,stt])	
+					stt_tot = st_tot
+				ME_list.append([ME,st_tot,stt_tot])	
 			return ME_list
 		else: # else just use method from parent class.
-			return Basis.Op(self,J,opstr,indx)
+			return Basis.Op(self,J,Sopstr,Popstr,indx)
 
 
 

@@ -9,11 +9,11 @@ class Basis1D:
 		# testing blocks for basis
 		if (type(kblock) is int):
 			if (type(zblock) is int) or (type(pblock) is int) or (type(pzblock) is int):
-				self.B=PeriodicBasis1D(Length,Nup=Nup,kblock=kblock,pblock=pblock,zblock=zblock,pzblock=pzblock,a=a)
+				self.B=PeriodicBasis1D(Length,Nph=Nph,Nup=Nup,Ntot=Ntot,kblock=kblock,pblock=pblock,zblock=zblock,pzblock=pzblock,a=a)
 			else:
-				self.B=PeriodicBasis1D(Length,Nup=Nup,kblock=kblock,a=a)
+				self.B=PeriodicBasis1D(Length,Nph=Nph,Nup=Nup,Ntot=Ntot,kblock=kblock,a=a)
 		elif (type(zblock) is int) or (type(pblock) is int) or (type(pzblock) is int):
-			self.B=OpenBasis1D(Length,Nup=Nup,zblock=zblock,pblock=pblock,pzblock=pzblock)
+			self.B=OpenBasis1D(Length,Nph=Nph,Nup=Nup,Ntot=Ntot,zblock=zblock,pblock=pblock,pzblock=pzblock)
 		else:
 			self.B=Basis(Length,Nph=Nph,Nup=Nup,Ntot=Ntot)
 		

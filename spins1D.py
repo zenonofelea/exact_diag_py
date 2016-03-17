@@ -136,7 +136,7 @@ class Hamiltonian1D:
 		Note that if you initialize with a basis it will ignore all symmetry inputs.
 		"""
 		Nph=init_params.get("Nph")
-
+		Ntot=init_params.get("Ntot")
 		Nup=init_params.get("Nup")
 		kblock=init_params.get("kblock")
 		zblock=init_params.get("zblock")
@@ -150,7 +150,7 @@ class Hamiltonian1D:
 		if dtype == None:
 			dtype=complex128
 		if basis == None:  
-			basis=Basis1D(L,Nph=Nph,Nup=Nup,a=a,kblock=kblock,zblock=zblock,pblock=pblock,pzblock=pzblock)
+			basis=Basis1D(L,Nph=Nph,Ntot=Ntot,Nup=Nup,a=a,kblock=kblock,zblock=zblock,pblock=pblock,pzblock=pzblock)
 		if not isinstance(basis,Basis1D):
 			raise TypeError("basis is not instance of Basis1D")
 		if dtype not in supported_dtypes:
