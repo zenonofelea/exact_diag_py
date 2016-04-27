@@ -66,12 +66,30 @@ def fliplr(int_type,length):
 # (generator of) parity symmetry
     return sum(1<<(length-1-i) for i in xrange(length) if int_type>>i&1)
 
+"""
 def flip_all(int_type,length):
 # this function flips all bits
 # (generator of) inversion symmetry
     lower = 0;
     upper = length;
     return int_type^((1<<upper)-1)&~((1<<lower)-1)
+"""
+
+def flip_all(int_type,length,sublat=None):
+# this function flips all bits on sublattice 'sublat'
+# (generator of) inversion symmetry
+    lower = 0;
+    upper = length;
+    if sublat == 'A':
+    	for i in xrange(0,length,2):
+    		int_type = flipBit(int_type,i)
+    	return int_type
+    elif sublat == 'B':
+    	for i in xrange(1,length,2):
+    		int_type = flipBit(int_type,i)
+    	return int_type
+    else:
+    	return int_type^((1<<upper)-1)&~((1<<lower)-1)
 
 
 

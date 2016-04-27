@@ -41,6 +41,8 @@ def SpinOp(s,opstr,indx):
 		else:
 			raise SpinOpError("operator symbol "+opstr[i]+" not recognized")
 
+	#print "SpinOp after", r
+
 #	print opstr, indx, ME
 	if ME.imag == 0.0:
 		ME=ME.real

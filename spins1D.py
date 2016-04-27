@@ -47,6 +47,13 @@ def StaticH(B,static,dtype):
 	if static: # if static is not an empty list []:
 		# there is no way to tranpose a list so we must convert to array, this process will convert all parts of the list to the most compatible type.
 		ME_list=asarray(ME_list).T.tolist() # transpose list so that it is now [[row,...],[col,...],[ME,...]] which is how coo_matrix is constructed.
+		
+		#print ME_list[0]
+		#print ME_list[1]
+		#print ME_list[2]
+		#print "_______"
+
+
 		ME_list[1]=map( lambda a:int(abs(a)), ME_list[1]) # convert the indices back to integers 
 		ME_list[2]=map( lambda a:int(abs(a)), ME_list[2])	# convert the indices back to integers
 		

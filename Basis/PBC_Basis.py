@@ -582,12 +582,12 @@ class PeriodicBasis1D(Basis):
 				#find reference state
 				s2,l,q,g,qg=self.RefState(s2)
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
-
+				#print "S's", [s1,s2]
 				#print [s1,s2], [st,stt]
 				#print l,q,g,self.m[stt]
 				if stt >= 0:
 					if (self.Kcon and self.Pcon) or (self.Kcon and self.PZcon):
-
+						#print [st, stt]
 						if abs( sin(self.k) ) <= 1E-14: # k = 0, pi
 							if self.Kcon and self.Pcon and self.Zcon:
 								ME *= J*self.helementTPZ(st, stt, l, q, g)
@@ -618,6 +618,7 @@ class PeriodicBasis1D(Basis):
 
 									#print l,ME;
 									ME_list.append([me,st_i,st_i])
+									print [st_i,st_i]
 							# Eq. {16} in [1]	
 							else: #offdiagonal matrix elements 
 
@@ -635,7 +636,8 @@ class PeriodicBasis1D(Basis):
 											me = (J*self.helementT_PZ(st_i, stt_j, l, qg) )*ME
 										elif self.Kcon and self.Pcon:
 											me = (J*self.helement(st_i, stt_j, l, q) )*ME
-										ME_list.append([me,st_i,stt_j])				
+										ME_list.append([me,st_i,stt_j])
+										print [st_i,stt_j]				
 					elif self.Kcon and self.Zcon:
 						ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zblock**g*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])		

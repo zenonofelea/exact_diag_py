@@ -43,9 +43,10 @@ def CheckStateP(p,s,L,rp=2):
 	return rp;
 
 
-def CheckStateZ(z,s,L,rz=2):
+def CheckStateZ(z,s,L,rz=2,sublat=None):
+	#if sublat: rz=4;
 	t=s
-	t=flip_all(t,L)
+	t=flip_all(t,L,sublat=sublat)
 	if t > s:
 		rz*=1;
 	else:
@@ -55,7 +56,7 @@ def CheckStateZ(z,s,L,rz=2):
 
 
 class OpenBasis1D(Basis):
-	def __init__(self,L,Nup=None,pblock=None,zblock=None,pzblock=None):
+	def __init__(self,L,Nup=None,pblock=None,zblock=None,zAblock=None,zBblock=None,pzblock=None):
 		# This function in the constructor of the class:
 		#		L: length of the chain
 		#		Nup: number of up spins if restricting magnetization sector. 
@@ -84,6 +85,8 @@ class OpenBasis1D(Basis):
 				raise BasisError("zblock must be either +/- 1")
 			self.Pcon = True
 			self.Zcon = True
+			self.ZAcon = False
+			self.ZBcon = False
 			self.PZcon = True
 			self.symm = True
 			self.pblock = pblock
@@ -95,9 +98,12 @@ class OpenBasis1D(Basis):
 			self.basis = []
 			for s in zbasis:
 				rpz = CheckStateZ(zblock,s,self.L)
+				#if s==3: print "prelim rpz 1", s, rpz
 				rpz = CheckStateP(pblock,s,self.L,rp=rpz)
+				#if s==3: print "prelim rpz 2", s, rpz
 				rpz = CheckStatePZ(pblock*zblock,s,self.L,rpz=rpz)
-#				print rpz, int2bin(s,self.L)
+				#if s==3: print "prelim rpz 3", s, rpz
+				print rpz, int2bin(s,self.L)
 				if rpz > 0:
 					self.basis.append(s)
 					self.Npz.append(rpz)
@@ -107,6 +113,8 @@ class OpenBasis1D(Basis):
 				raise BasisError("pblock must be either +/- 1")
 			self.Pcon = True
 			self.Zcon = False
+			self.ZAcon = False
+			self.ZBcon = False
 			self.PZcon = False
 			self.symm = True
 			self.pblock = pblock
@@ -125,6 +133,8 @@ class OpenBasis1D(Basis):
 				raise BasisError("zblock must be either +/- 1")
 			self.Pcon = False
 			self.Zcon = True
+			self.ZAcon = False
+			self.ZBcon = False
 			self.PZcon = False
 			self.symm = True
 			self.z = zblock
@@ -135,12 +145,68 @@ class OpenBasis1D(Basis):
 				if rz > 0:
 					self.basis.append(s)
 			self.Ns=len(self.basis)
+		elif type(zAblock) is int and type(zBblock) is int:
+			if abs(zAblock) != 1 or abs(zBblock) != 1:
+				raise BasisError("zAblock and zBblock must be either +/- 1")
+			self.Pcon = False
+			self.Zcon = False
+			self.ZAcon = True
+			self.ZBcon = True
+			self.PZcon = False
+			self.symm = True
+			self.zA = zAblock
+			self.zB = zBblock
+			self.basis = []
+			for s in zbasis:
+				rzA = CheckStateZ(zAblock,s,self.L,sublat='A')
+				rzB = CheckStateZ(zBblock,s,self.L,sublat='B')
+				rz  = CheckStateZ(zAblock*zBblock,s,self.L)
+#				print rz, int2bin(s,self.L)
+				if rzA > 0 and rzB > 0 and rz > 0:
+					self.basis.append(s)
+			self.Ns=len(self.basis)
+		elif type(zAblock) is int:
+			if abs(zAblock) != 1:
+				raise BasisError("zAblock must be either +/- 1")
+			self.Pcon = False
+			self.Zcon = False
+			self.ZAcon = True
+			self.ZBcon = False
+			self.PZcon = False
+			self.symm = True
+			self.zA = zAblock
+			self.basis = []
+			for s in zbasis:
+				rz=CheckStateZ(zAblock,s,self.L,sublat='A')
+#				print rz, int2bin(s,self.L)
+				if rz > 0:
+					self.basis.append(s)
+			self.Ns=len(self.basis)
+		elif type(zBblock) is int:
+			if abs(zBblock) != 1:
+				raise BasisError("zBblock must be either +/- 1")
+			self.Pcon = False
+			self.Zcon = False
+			self.ZAcon = False
+			self.ZBcon = True
+			self.PZcon = False
+			self.symm = True
+			self.zB = zBblock
+			self.basis = []
+			for s in zbasis:
+				rz=CheckStateZ(zBblock,s,self.L,sublat='B')
+#				print rz, int2bin(s,self.L)
+				if rz > 0:
+					self.basis.append(s)
+			self.Ns=len(self.basis)
 		elif type(pzblock) is int:
 			if abs(pzblock) != 1:
 				raise BasisError("pzblock must be either +/- 1")
 			self.PZcon = True
 			self.Zcon = False
 			self.Pcon = False
+			self.ZAcon = False
+			self.ZBcon = False
 			self.symm = True
 			self.pzblock = pzblock
 			self.Npz = []
@@ -155,9 +221,15 @@ class OpenBasis1D(Basis):
 		else: 
 			self.Pcon=False
 			self.Zcon=False
+			self.ZAcon=False
+			self.ZBcon=False
 			self.PZcon=False
-	
-
+		'''
+		print "basis:"
+		for i in self.basis:
+			print i, int2bin(i,self.L)
+		print "______"
+		'''
 
 	def RefState(self,s):
 		# this function takes an integer s which represents a spin configuration in the Sz basis, then tries to find its 
@@ -166,7 +238,7 @@ class OpenBasis1D(Basis):
 		# reference state.
 		# it returns r which is the reference state. g,q, and qg are the number of times the P,Z and PZ operators had to act.
 		# This information is needed to calculate the matrix element s between states in this basis [1].
-		t=s; r=s; g=0; q=0; qg=0;
+		t=s; r=s; g=0; gA=0; gB=0; q=0; qg=0;
 		if self.Pcon and self.Zcon:
 			t = flip_all(t,self.L)
 			if t < r:
@@ -186,13 +258,34 @@ class OpenBasis1D(Basis):
 			t = flip_all(t,self.L)
 			if t < s:
 				r=t; g=1;
+		elif self.ZAcon and self.ZBcon:
+			
+			t = flip_all(t,self.L,sublat='A')
+			if t < r:
+				r=t; gA=1; gB=0;			
+			t=s
+			t = flip_all(t,self.L,sublat='B')
+			if t < r:
+				r=t; gA=0; gB=1;
+			t=s
+			t = flip_all(t,self.L)
+			if t < r:
+				r=t; gA=1; gB=1;
+		elif self.ZAcon:
+			t = flip_all(t,self.L,sublat='A')
+			if t < s:
+				r=t; gA=1;
+		elif self.ZBcon:
+			t = flip_all(t,self.L,sublat='B')
+			if t < s:
+				r=t; gB=1;
 		elif self.PZcon:
 			t = fliplr(t,self.L)
 			t = flip_all(t,self.L)
 			if t < s:
 				r=t; qg=1;		
 
-		return r,q,g,qg
+		return r,q,g,gA,gB,qg
 
 
 	def Op(self,J,opstr,indx):
@@ -202,21 +295,28 @@ class OpenBasis1D(Basis):
 		#		st: index of a local state in the basis for which the opstor will act on
 		#		opstr: string which contains a list of operators which  
 		#		indx: a list of ordered indices which tell which operator in opstr live on the lattice.
-		if self.Pcon or self.Zcon or self.PZcon: # if the user wants to use any symmetries, special care must be taken [1]
+		if self.Pcon or self.Zcon or self.ZAcon or self.ZBcon or self.PZcon: # if the user wants to use any symmetries, special care must be taken [1]
 			ME_list=[]
 			for st in xrange(self.Ns):
 				s1=self.basis[st]
 				ME,s2=SpinOp(s1,opstr,indx)
-				s2,q,g,qg=self.RefState(s2)
+				s2,q,g,gA,gB,qg=self.RefState(s2)
 				stt=self.FindZstate(s2)
-				#print st,int2bin(s1,self.L),int2bin(exchangeBits(s1,i,j),self.L), stt,int2bin(s2,self.L), q, g, [i,j]
-				if stt >= 0: 
+				if stt >= 0:
+					#print "(st, stt)=", (st, stt), "<--------" 
 					if self.Pcon and self.Zcon:
 						ME *= sqrt( float(self.Npz[stt])/self.Npz[st])*J*self.pblock**(q)*self.zblock**(g)
 					elif self.Pcon:
 						ME *= sqrt( float(self.Np[stt])/(self.Np[st]))*J*self.pblock**(q)
 					elif self.Zcon:
-						ME *=  J*self.z**(g)
+						ME *= J*self.z**(g)
+					elif self.ZAcon and self.ZBcon:
+						#print "ME:", self.zA**(gA)*self.zB**(gB)
+						ME *= J*self.zA**(gA)*self.zB**(gB)
+					elif self.ZAcon:
+						ME *= J*self.zA**(gA)
+					elif self.ZBcon:
+						ME *= J*self.zB**(gB)
 					elif self.PZcon:
 						ME *= sqrt( float(self.Npz[stt])/self.Npz[st] )*J*self.pzblock**(qg)		
 				else:
