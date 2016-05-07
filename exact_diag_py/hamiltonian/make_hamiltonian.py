@@ -25,7 +25,7 @@ def make_static(basis,static_list,dtype,pauli):
 		for bond in bonds:
 			J=bond[0]
 			indx=bond[1:]
-			ME,row,col = basis.Op(opstr,indx,J,dtype,pauli)
+			ME,row,col = basis.Op(dtype,J,opstr,indx,pauli)
 			Ht=_sp.csr_matrix((ME,(row,col)),shape=(Ns,Ns),dtype=dtype) 
 			H=H+Ht
 			del Ht
@@ -73,7 +73,7 @@ def make_dynamic(basis,dynamic_list,dtype,pauli):
 			for bond in bonds:
 				J=bond[0]
 				indx=bond[1:]
-				ME,row,col = basis.Op(opstr,indx,J,dtype,pauli)
+				ME,row,col = basis.Op(opstr,J,dtype,indx,pauli)
 				Ht=_sp.csr_matrix((ME,(row,col)),shape=(Ns,Ns),dtype=dtype) 
 				H=H+Ht
 				del Ht

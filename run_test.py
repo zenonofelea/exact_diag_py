@@ -1,5 +1,5 @@
 from exact_diag_py.hamiltonian import hamiltonian
-from exact_diag_py.basis import basis1d
+from exact_diag_py.basis import basis1d,photons,tensor
 import numpy as np
 import scipy.sparse as sm
 from numpy.linalg import norm
@@ -714,15 +714,70 @@ def check_getvec(L,a=1):
 
 
 
-check_m(4)
-check_opstr(4)
-check_obc(8)
-check_pbc(8)
-check_getvec(8)
+#check_m(4)
+#check_opstr(4)
+#check_obc(8)
+#check_pbc(8)
+#check_getvec(8)
+
+def JCM(wc,wa,Omega,n):
+	E = np.fromiter(xrange(n+1),np.float64,count=n+1)
+	O = E + 1
+	O *= Omega**2
+	O += (wc-wa)**2
+	np.sqrt(O,O)
+	O /= 2.0
+	
+	E *= wc
+	E += wc/2.0
+	E = np.array(np.broadcast_to(E,(2,n+1))).ravel()
+	O = np.vstack((O,-O)).ravel()
+
+	E += O
+	E = np.append(E,-wa/2.0)
+
+	E = np.asarray(sorted(E))
+	E = E[:2*(n+1)]
+
+	return E
+	
+
+	
+
+
+L=10
+
+J=1
+h=0.5
+Omega=0.001
+V = 0.1
+n=1000
+
+b = basis1d(L,Nup=L/2,kblock=0,pblock=1,zblock=1)
+p = photons(n)
+
+bp = tensor(b,p)
+print bp.Ns
+
+bonds = [[J,i,(i+1)%L,0] for i in xrange(L)]
+mag = [[(-1.0)**(i+j)/L**2,i,j,0] for i in xrange(L) for j in xrange(L)]
+photon = [[Omega,0,0]]
+coupling = [[V,i,(i+1)%L,0] for i in xrange(L)]
+
+static=[['zz|I',bonds],['yy|I',bonds],['xx|I',bonds],['I|+-',photon],['+-|-',coupling],['-+|+',coupling]]
+
+print "making H"
+H = hamiltonian(static,[],L,basis=bp,dtype=np.float64,pauli=False)
+Hp = hamiltonian([['I|+-',photon]],[],L,basis=bp,dtype=np.float64,pauli=False)
+M = hamiltonian([['zz|I',mag]],[],L,basis=bp,dtype=np.float64,pauli=False)
+print "ground state"
+E,V = H.eigsh(k=1,which="SA",maxiter=100000)
 
 
 
-
+Np=Hp.me(V,V).ravel()
+mag = M.me(V,V).ravel()
+print E[0],mag[0],Np[0]
 
 
 

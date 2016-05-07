@@ -36,8 +36,13 @@ op={"":_cn.op,
 		"M & T & P & Z":_cn.op_t_p_z}
 
 
+class basis: 
+	def __init__(self,Ns):
+		self.Ns = Ns
 
-class basis1d:
+
+
+class basis1d(basis):
 	def __init__(self,L,**blocks):
 		# getting arguements which are used in basis.
 		Nup=blocks.get("Nup")
@@ -286,7 +291,7 @@ class basis1d:
 
 
 
-	def Op(self,opstr,indx,J,dtype,pauli):
+	def Op(self,dtype,J,opstr,indx,pauli):
 		if len(opstr) != len(indx):
 			raise ValueError('length of opstr does not match length of indx')
 		if not _np.can_cast(J,_np.dtype(dtype)):

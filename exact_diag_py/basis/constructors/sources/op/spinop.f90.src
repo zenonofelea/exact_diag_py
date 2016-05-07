@@ -17,7 +17,7 @@ do i=1,Ns
 M_E=1.0<d0=,d0,,d0>; r=basis(i)
 do j=N_indx,1,-1
 a = iand(ishft(r,-indx(j)),1)
-if(opstr(j) .eq. "c") then
+if(opstr(j) .eq. "I") then
 cycle
 
 else if(opstr(j) .eq. "z") then

@@ -1,5 +1,6 @@
 #local modules:
 from ..basis import basis1d as _basis1d
+from ..basis import basis as _basis
 from make_hamiltonian import make_static as _make_static
 from make_hamiltonian import make_dynamic as _make_dynamic
 
@@ -90,7 +91,7 @@ class hamiltonian:
 		if type(L) is not int:
 			raise TypeError('expecting integer for L')
 
-		if not isinstance(basis,_basis1d):
+		if not isinstance(basis,_basis):
 			raise TypeError('expecting instance of basis class for basis')
 		if not (dtype in supported_dtypes):
 			raise TypeError('hamiltonian does not support type: '+str(dtype))
@@ -128,7 +129,6 @@ class hamiltonian:
 
 		self.L = L
 		self.Ns = basis.Ns
-		self.blocks = basis.blocks
 		self.dtype = dtype
 		if self.Ns > 0:
 			self.static=_make_static(basis,static_list,dtype,pauli)
