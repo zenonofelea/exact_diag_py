@@ -46,8 +46,8 @@ if PBC==1:
 
 	Qstr    = [[Q,i,(i+1)%L] for i in xrange(L)]
 
-	#basis=basis1d(L,Nup=L/2,kblock=0,pblock=1,zblock=1)
-	basis=basis1d(L)
+	basis=basis1d(L,Nup=L/2,kblock=0,pblock=1,zblock=1)
+	#basis=basis1d(L)
 
 elif PBC==0:
 
@@ -102,7 +102,7 @@ psiGS = np.real( VSSH[:,0] )
 E1GS = ESSH[0]
 
 #print psi1GS
-print E1GS/L
+print "E_GS/L =", E1GS/L
 
 
 
@@ -117,6 +117,7 @@ def Entanglement_entropy(L,psi,subsys=[i for i in xrange( int(L/2) )],basis=None
 
 	if np.any(DM):
 		variables.append("DM")
+		print "DM calculation is enabled. The reduced DM is produced in the full-chain Sz-basis containing all 2^L states."
 
 
 	# turn the following messages into WARNINGS	
@@ -142,11 +143,7 @@ def Entanglement_entropy(L,psi,subsys=[i for i in xrange( int(L/2) )],basis=None
 	Ns_A = 2**L_A
 	
 	# define lattice indices putting the subsystem to the left
-	for i in xrange(L):
-		if i in subsys:
-			continue
-		else:
-			subsys.append(i)
+	[subsys.append(i) for i in xrange(L) if not i in subsys]
 
 	'''
 	the algorithm for the entanglement entropy of an arbitrary subsystem goes as follows:
@@ -154,7 +151,7 @@ def Entanglement_entropy(L,psi,subsys=[i for i in xrange( int(L/2) )],basis=None
 	1) the initial state psi has 2^L entries corresponding to the spin-z configs
 	2) reshape psi into a 2x2x2x2x...x2 dimensional array (L products in total). Call this array v.
 	3) v should satisfy the property that v[0,1,0,0,0,1,...,1,0], total of L entries, should give the entry of psi 
-	   corresponding to the spin-z basis vector (0,1,0,0,0,1,...,1,0). This ensures a correspondence of the v-indices
+	   along the the spin-z basis vector direction (0,1,0,0,0,1,...,1,0). This ensures a correspondence of the v-indices
 	   (and thus the psi-entries) to the L lattice sites.
 	4) fix the lattice sites that define the subsystem L_A, and reshuffle the array v according to this: e.g. if the 
  	   subsystem consistes of sites (k,l) then v should be reshuffled such that v[(k,l), (all other sites)]
@@ -339,7 +336,7 @@ def Diag_Ens_Observables(L,V1,V2,E1,betavec=[],alpha=1.0, Obs=False, Ed=False,S_
 
 
 #print Diag_Ens_Observables(L,V1,V2,E1,Obs = V1+V1.transpose().conj(), Ed = True, betavec=betavec	)
-print Diag_Ens_Observables(L,V1,V2,E1, Obs=H1.todense(),Ed=True, betavec=betavec	)
+print Diag_Ens_Observables(L,V1,V2,E1, Obs=H1.todense(), Ed=True, betavec=betavec	)
 
 	
 
@@ -348,11 +345,16 @@ def Kullback_Leibler_div(p1,p2):
 	return np.multiply( p1, log( np.divide(p1,p2) ) ).sum()
 
 
-def Observable_vs_time(psi,V2,E2,Obs,times):
+def Observable_vs_time(psi,V2,E2,Obs,times,return_state=False):
 	# psi: initial state
 	# V2, E2: matrix w/ eigenbasis and vector of eogenvalues of post-quench Hamiltonian H2
 	# Obs: observable of interest
 	# times: vector with time values
+
+	variables = ['Expt_time']
+
+	if return_state==True:
+		variables.append("psi_time")
 
 	# project initial state onto basis V2
 	c_n = V2.conjugate().transpose().dot(psi)
@@ -369,17 +371,23 @@ def Observable_vs_time(psi,V2,E2,Obs,times):
 	Lt = len(times)
 
 	# preallocate state
-	# psi_time = zeros((Ns,Lt),dtype=np.complex128)
+	if return_state==True:
+		psi_time = zeros((Ns,Lt),dtype=np.complex128)
 
 	# preallocate expectation value
 	Expt_time = zeros((Lt),dtype=np.float128)
 
 	# loop over time vector
 	for m in xrange(Lt):
-		# psi_time[:,m] = psit(c_nF,times[m])
+		if return_state==True:
+			psi_time[:,m] = psit(c_nF,times[m])
 		Expt_time[m] = np.real( reduce( np.dot, [psit(c_n,times[m]).conjugate().T, Obs, psit(c_n,times[m]) ]  )  )
 
-	return Expt_time
+	return_dict = {}
+	for i in range(len(variables)):
+		return_dict[variables[i]] = vars()[variables[i]]
+
+	return return_dict
 
 #times = [0,1,2,3,4,5.0]
 #print Observable_vs_time(V1[:,0],V2,E2,H1,times)
