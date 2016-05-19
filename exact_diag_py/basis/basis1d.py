@@ -43,7 +43,7 @@ class basis:
 
 
 class basis1d(basis):
-	def __init__(self,L,**blocks):
+	def __init__(self,L,z_exception=True,**blocks):
 		# getting arguements which are used in basis.
 		Nup=blocks.get("Nup")
 		kblock=blocks.get("kblock")
@@ -94,7 +94,7 @@ class basis1d(basis):
 			raise ValueError('L must be interger multiple of lattice spacing a')
 
 		# checking if spin inversion is compatible with Nup and L
-		if (type(Nup) is int) and ((type(zblock) is int) or (type(pzblock) is int)):
+		if (type(Nup) is int) and z_exception and ((type(zblock) is int) or (type(pzblock) is int)):
 			if (L % 2) != 0:
 				raise ValueError("spin inversion symmetry must be used with even number of sites")
 			if Nup != L/2:
@@ -302,7 +302,7 @@ class basis1d(basis):
 
 
 
-	def get_norms(self,dtype):
+	def _get_norms(self,dtype):
 		a = self.blocks.get("a")
 		kblock = self.blocks.get("kblock")
 		pblock = self.blocks.get("pblock")
@@ -392,15 +392,18 @@ class basis1d(basis):
 		if self.Ns <= 0:
 			return _np.array([])
 		if v0.ndim == 1:
+			if v0.shape[0] != self.Ns:
+				raise ValueError("v0 has incompatible dimensions with basis")
 			shape = (2**self.L,1)
 			v0 = v0.reshape((-1,1))
 		elif v0.ndim == 2:
+			if v0.shape[0] != self.Ns:
+				raise ValueError("v0 has incompatible dimensions with basis")
 			shape = (2**self.L,v0.shape[1])
 		else:
 			raise ValueError("excpecting v0 to have ndim at most 2")
 
-
-		norms = self.get_norms(v0.dtype)
+		norms = self._get_norms(v0.dtype)
 
 		a = self.blocks.get("a")
 		kblock = self.blocks.get("kblock")
@@ -496,7 +499,7 @@ def _get_vec_dense(v0,basis,norms,ind_neg,ind_pos,shape,C,L,**blocks):
 			flipall(basis,L)
 		
 		shiftc(basis,-a,L)
-		
+
 #	v /= _np.linalg.norm(v,axis=0)
 	return v
 
@@ -536,15 +539,16 @@ def _get_vec_sparse(v0,basis,norms,ind_neg,ind_pos,shape,C,L,**blocks):
 
 	c = _np.zeros(basis.shape,dtype=v0.dtype)	
 	v = _sm.csr_matrix(shape,dtype=v0.dtype)
-
+	eps=_np.finfo(v0.dtype).eps
 
 
 	for r in xrange(0,L/a):
 		C(r,k,c,norms,dtype,ind_neg,ind_pos)
 
 		vc = (v0.T*c).T
-		data_pos = (v0.T*c).T[ind_pos].flatten()
-		data_neg = (v0.T*c).T[ind_neg].flatten()
+		vc[_np.abs(vc) <= eps] = 0
+		data_pos = vc[ind_pos].flatten()
+		data_neg = vc[ind_neg].flatten()
 		v = v + _sm.csr_matrix((data_pos,(basis[row_pos],col_pos)),shape,dtype=v.dtype)
 		v = v + _sm.csr_matrix((data_neg,(basis[row_neg],col_neg)),shape,dtype=v.dtype)
 
@@ -583,16 +587,6 @@ def _get_vec_sparse(v0,basis,norms,ind_neg,ind_pos,shape,C,L,**blocks):
 		shiftc(basis,-a,L)
 
 		
-
-
-#	av = v.multiply(v.conj())
-#	norm = av.sum(axis=0)
-#	del av
-#	_np.sqrt(norm,out=norm)
-#	_np.divide(1.0,norm,out=norm)
-#	norm = _sm.csr_matrix(norm)
-#	v = v.multiply(norm)
-
 	return v
 
 
