@@ -103,7 +103,7 @@ class OpenBasis1D(Basis):
 				#if s==3: print "prelim rpz 2", s, rpz
 				rpz = CheckStatePZ(pblock*zblock,s,self.L,rpz=rpz)
 				#if s==3: print "prelim rpz 3", s, rpz
-				print rpz, int2bin(s,self.L)
+				#print rpz, int2bin(s,self.L)
 				if rpz > 0:
 					self.basis.append(s)
 					self.Npz.append(rpz)

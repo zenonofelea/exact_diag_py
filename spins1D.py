@@ -134,6 +134,8 @@ class Hamiltonian1D:
 		Nup=init_params.get("Nup")
 		kblock=init_params.get("kblock")
 		zblock=init_params.get("zblock")
+		zAblock=init_params.get("zAblock")
+		zBblock=init_params.get("zBblock")
 		pblock=init_params.get("pblock")
 		pzblock=init_params.get("pzblock")
 		dtype=init_params.get("dtype")
@@ -144,7 +146,7 @@ class Hamiltonian1D:
 		if dtype == None:
 			dtype=complex128
 		if basis == None:  
-			basis=Basis1D(L,Nup=Nup,a=a,kblock=kblock,zblock=zblock,pblock=pblock,pzblock=pzblock)
+			basis=Basis1D(L,Nup=Nup,a=a,kblock=kblock,zblock=zblock,zAblock=zAblock,zBblock=zBblock,pblock=pblock,pzblock=pzblock)
 		if not isinstance(basis,Basis1D):
 			raise TypeError("basis is not instance of Basis1D")
 		if dtype not in supported_dtypes:

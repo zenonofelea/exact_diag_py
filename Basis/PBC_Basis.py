@@ -61,7 +61,7 @@ def CheckStateTP(kblock,L,s,T=1):
 	return R,m
 
 
-def CheckStateTZ(kblock,L,s,T=1):
+def CheckStateTZ(kblock,L,s,T=1,sublat=None):
 	# this is a function defined in [1]
 	# It is used to check if the integer inputed is a reference state for a state with momentum k.
 	#		kblock: the number associated with the momentum (i.e. k=2*pi*kblock/L)
@@ -81,7 +81,7 @@ def CheckStateTZ(kblock,L,s,T=1):
 			R = i
 			break
 	t = s
-	t = flip_all(t,L)
+	t = flip_all(t,L,sublat=sublat)
 	for j in xrange(0,R):
 		if t < s:
 			R = -1
@@ -185,7 +185,7 @@ def CheckStateTPZ(kblock,L,s,T=1):
 # child class of Basis, this is the momentum conserving basis:
 # because it is a child class of Basis, it inherits its methods like FindZstate which searches basis for states
 class PeriodicBasis1D(Basis):
-	def __init__(self,L,Nup=None,kblock=None,pblock=None,zblock=None,pzblock=None,a=1):
+	def __init__(self,L,Nup=None,kblock=None,pblock=None,zblock=None,zAblock=None,zBblock=None,pzblock=None,a=1):
 		# This function in the constructor of the class:
 		#		L: length of the chain
 		#		Nup: number of up spins if restricting magnetization sector. 
@@ -196,9 +196,13 @@ class PeriodicBasis1D(Basis):
 		zbasis=self.basis # take initialized basis from Basis class and store in separate array to access, then overwrite basis.
 		self.Pcon=False
 		self.Zcon=False
+		self.ZAcon=False
+		self.ZBcon=False
 		self.PZcon=False
 		self.pblock=None
 		self.zblock=None
+		self.zAblock=None
+		self.zBblock=None
 		self.pzblock=None
 		if (type(kblock) is int) and (L%a != 0):
 			raise BasisError("lattice spacing a must be divisor of L.")
@@ -362,7 +366,7 @@ class PeriodicBasis1D(Basis):
 			self.Ns=len(self.basis)
 		elif type(kblock) is int and type(zblock) is int:
 			if abs(zblock) != 1: raise BasisError("zblock must have integer values +/-1")
-			if self.L % 2 != 0: raise BasisError("chain length must be even!")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!") # IS THIS REALLY NEEDED?
 			self.a=a
 			self.kblock=kblock
 			self.k=2*pi*a*kblock/L
@@ -383,6 +387,129 @@ class PeriodicBasis1D(Basis):
 				if r>0:
 					if m >= 0:
 						Na = 2/float(r)*(1 + self.zblock*cos(self.k*m))	
+					else:
+						Na = 2/float(r)
+					self.NaTZ.append(Na)
+					self.m.append(m)	
+					self.basis.append(s)
+			self.Ns=len(self.basis)
+		elif type(kblock) is int and type(zAblock) is int and type(zBblock) is int:
+			if abs(zAblock) != 1 or abs(zBblock) != 1:
+				raise BasisError("zAblock and zBblock must be either +/- 1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
+			if a % 2 != 0: raise BasisError("T and ZA, ZB symemtries do NOT commute!")
+			self.a=a
+			self.kblock=kblock
+			self.k=2*pi*a*kblock/L
+			self.zAblock=zAblock
+			self.zBblock=zBblock
+			self.Kcon=True
+			self.Zcon = False
+			self.ZAcon = True
+			self.ZBcon = True
+			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
+			self.Na=[]#vec('I') 
+			self.basis=vec('L')
+			for s in zbasis:
+				rzA,mA=CheckStateTZ(kblock,L,s,T=a,sublat='A')
+				rzB,mB=CheckStateTZ(kblock,L,s,T=a,sublat='B')
+				r,m=CheckStateTZ(kblock,L,s,T=a)
+				if mA==-1 and mB==-1 and m==-1:
+					if rzA>0 and rzB>0 and r>0:
+						Na = 2/float(r)
+						self.Na.append(Na)				
+						self.basis.append(s)
+				if mA != -1 and mB == -1 and m == -1:
+					if 1 + zAblock*cos(mA*self.k) == 0:
+						rzA = -1
+					if rzA>0 and rzB>0 and r>0:
+						Na = 2/float(r)*(1 + zAblock*cos(mA*self.k))
+						self.Na.append(Na)				
+						self.basis.append(s)
+				if mA == -1 and mB != -1 and m == -1:
+					if 1 + zBblock*cos(self.k*mB) == 0:
+						rzB=-1
+					if rzA>0 and rzB>0 and r>0:		
+						Na = 2/float(r)*(1 + zBblock*cos(m*self.k))
+						self.Na.append(Na)				
+						self.basis.append(s)
+				if mA == -1 and mB == -1 and m != -1:
+					if 1 + zAblock*zBblock*cos(m*self.k) == 0:
+						r = -1
+					if rzA>0 and rzB>0 and r>0:
+						Na = 2/float(r)*(1 + zAblock*zBblock*cos(m*self.k))
+						self.Na.append(Na)				
+						self.basis.append(s)
+				if (mA != -1) and (mB != -1):
+					print 4
+					if (1 + zAblock*cos(mp*self.k) == 0) or (1 + zBblock*cos(mB*self.k) == 0):
+						rzA = -1
+						rzB = -1
+					if rzA>0 and rzB>0 and r>0:
+						if (m - (mA+mB) % self.L) != 0:
+							print "condition m = mA + mB failed: [mA,mB,m] =", [mA,mB,m]
+						Na = 2/float(r)*(1 + zAblock*cos(mA*self.k))*(1 + zBblock*cos(mB*self.k))
+						self.Na.append(Na)				
+						self.basis.append(s)
+			self.Ns=len(self.basis)
+		elif type(kblock) is int and type(zAblock) is int:
+			if abs(zAblock) != 1: raise BasisError("zAblock must have integer values +/-1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
+			if a % 2 != 0: raise BasisError("T and ZA symemtries do NOT commute!")
+			self.a=a
+			self.kblock=kblock
+			self.k=2*pi*a*kblock/L
+			self.zAblock=zAblock
+			self.Kcon=True
+			self.Zcon = False
+			self.ZAcon = True
+			self.ZBcon = False
+			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
+			self.NaTZ=[]#vec('I') 
+			self.m=[]#vec('I')
+			self.basis=vec('L')
+			for s in zbasis:
+				r,m=CheckStateTZ(kblock,L,s,T=a,sublat='A')
+				#print "before:", [s,r,m]
+				if m != -1:
+					if 1 + zAblock*cos(self.k*m) == 0:
+						r=-1
+				#print "after:", [s,r,m]		
+				if r>0:
+					if m >= 0:
+						Na = 2/float(r)*(1 + self.zAblock*cos(self.k*m))	
+					else:
+						Na = 2/float(r)
+					self.NaTZ.append(Na)
+					self.m.append(m)	
+					self.basis.append(s)
+			self.Ns=len(self.basis)
+		elif type(kblock) is int and type(zBblock) is int:
+			if abs(zBblock) != 1: raise BasisError("zBblock must have integer values +/-1")
+			if self.L % 2 != 0: raise BasisError("chain length must be even!")
+			if a % 2 != 0: raise BasisError("T and ZB symemtries do NOT commute!")
+			self.a=a
+			self.kblock=kblock
+			self.k=2*pi*a*kblock/L
+			self.zBblock=zBblock
+			self.Kcon=True
+			self.Zcon = False
+			self.ZAcon = False
+			self.ZBcon = True
+			self.symm=True # even if Mcon=False there is a symmetry therefore we must search through basis list.
+			self.NaTZ=[]#vec('I') 
+			self.m=[]#vec('I')
+			self.basis=vec('L')
+			for s in zbasis:
+				r,m=CheckStateTZ(kblock,L,s,T=a,sublat='B')
+				#print "before:", [s,r,m]
+				if m != -1:
+					if 1 + zBblock*cos(self.k*m) == 0:
+						r=-1
+				#print "after:", [s,r,m]		
+				if r>0:
+					if m >= 0:
+						Na = 2/float(r)*(1 + self.zBblock*cos(self.k*m))	
 					else:
 						Na = 2/float(r)
 					self.NaTZ.append(Na)
@@ -438,7 +565,7 @@ class PeriodicBasis1D(Basis):
 		# reference state.
 		# it returns r which is the reference state. l is the number of times the translation operator had to act.
 		# This information is needed to calculate the matrix element s between states in this basis [1].
-		t=s; r=s; l=0; q=0; g=0; qg=0;
+		t=s; r=s; l=0; q=0; g=0; gA=0; gB=0; qg=0;
 		if self.Kcon and self.Pcon and self.Zcon:
 			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
@@ -485,6 +612,52 @@ class PeriodicBasis1D(Basis):
 				t=shift(t,-self.a,self.L)
 				if t<r:
 					r=t; l=i; g=1;
+		elif self.Kcon and self.ZAcon and self.ZBcon:
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i;		
+			t=s
+			t = flip_all(t,self.L,sublat='A')
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i; gA=1; gB=0;			
+			t=s
+			t = flip_all(t,self.L,sublat='B')
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i; gA=0; gB=1;
+			t=s
+			t = flip_all(t,self.L)
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i; gA=1; gB=1;
+
+		elif self.Kcon and self.ZAcon:
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i;		
+			t = s;
+			t = flip_all(t,self.L, sublat='A')
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t<r:
+					r=t; l=i; gA=1;
+		elif self.Kcon and self.ZBcon:
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t < r:
+					r=t; l=i;		
+			t = s;
+			t = flip_all(t,self.L, sublat='B')
+			for i in xrange(1,self.L/self.a+1):
+				t=shift(t,-self.a,self.L)
+				if t<r:
+					r=t; l=i; gB=1;
 		elif self.Kcon and self.PZcon:
 			for i in xrange(1,self.L/self.a+1):
 				t=shift(t,-self.a,self.L)
@@ -503,7 +676,7 @@ class PeriodicBasis1D(Basis):
 				if t < r:
 					r=t; l=i;
 
-		return r,l,q,g,qg
+		return r,l,q,g,gA,gB,qg
 
 
 
@@ -580,7 +753,7 @@ class PeriodicBasis1D(Basis):
 				#offdiagonal matrix elements
 				ME,s2=SpinOp(s1,opstr,indx); 
 				#find reference state
-				s2,l,q,g,qg=self.RefState(s2)
+				s2,l,q,g,gA,gB,qg=self.RefState(s2)
 				stt=self.FindZstate(s2) # if reference state not found in basis, this is not a valid matrix element.
 				#print "S's", [s1,s2]
 				#print [s1,s2], [st,stt]
@@ -640,7 +813,16 @@ class PeriodicBasis1D(Basis):
 										print [st_i,stt_j]				
 					elif self.Kcon and self.Zcon:
 						ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zblock**g*exp(-1j*self.k*l)
-						ME_list.append([ME,st,stt])		
+						ME_list.append([ME,st,stt])
+					elif self.Kcon and self.ZAcon and self.ZBcon:
+						ME *= sqrt(float(self.Na[stt]/self.Na[st] ) )*J*self.zAblock**gA*self.zBblock**gB*exp(-1j*self.k*l)
+						ME_list.append([ME,st,stt])
+					elif self.Kcon and self.ZAcon:
+						ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zAblock**gA*exp(-1j*self.k*l)
+						ME_list.append([ME,st,stt])
+					elif self.Kcon and self.ZBcon:
+						ME *= sqrt(float(self.NaTZ[stt]/self.NaTZ[st] ) )*J*self.zBblock**gB*exp(-1j*self.k*l)
+						ME_list.append([ME,st,stt])			
 					elif self.Kcon:
 						ME *= sqrt(float(self.R[st])/self.R[stt])*J*exp(-1j*self.k*l)
 						ME_list.append([ME,st,stt])
