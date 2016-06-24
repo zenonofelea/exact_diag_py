@@ -137,7 +137,6 @@ class basis1d(basis):
 		self._L=L
 		if type(Nup) is int:
 			self._Nup=Nup
-			del self._blocks["Nup"]
 			self._conserved="M"
 			self._Ns=ncr(L,Nup) 
 		else:
