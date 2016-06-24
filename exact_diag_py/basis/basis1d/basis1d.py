@@ -78,7 +78,7 @@ class basis1d(basis):
 
 		# checking type, and value of blocks
 		if Nup is not None:
-			if type(Nup) is not int: raise TypeError('kblock must be integer')
+			if type(Nup) is not int: raise TypeError('Nup must be integer')
 			if Nup < 0 or Nup > L: raise ValueError("0 <= Nup <= %d" % L)
 
 		if pblock is not None:
@@ -137,6 +137,7 @@ class basis1d(basis):
 		self._L=L
 		if type(Nup) is int:
 			self._Nup=Nup
+			del self._blocks["Nup"]
 			self._conserved="M"
 			self._Ns=ncr(L,Nup) 
 		else:
@@ -171,9 +172,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_p_z_basis(L,pblock,zblock,kblock,a,self._N,self._m,self._basis)
 			# cut off extra memory for overestimated state number
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(kblock) is int) and (type(zAblock) is int) and (type(zBblock) is int):
@@ -191,9 +192,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_zA_zB_basis(L,zAblock,zBblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(kblock) is int) and (type(pzblock) is int):
@@ -210,9 +211,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_pz_basis(L,pzblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(kblock) is int) and (type(pblock) is int):
@@ -228,9 +229,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_p_basis(L,pblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(kblock) is int) and (type(zblock) is int):
@@ -246,9 +247,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_z_basis(L,zblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 
@@ -265,9 +266,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_zA_basis(L,zAblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(kblock) is int) and (type(zBblock) is int):
@@ -283,9 +284,9 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_zB_basis(L,zBblock,kblock,a,self._N,self._m,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._m = self._m[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._m.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._m,self._basis,self._L]
 
 		elif (type(pblock) is int) and (type(zblock) is int):
@@ -300,8 +301,8 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_p_z_basis(L,pblock,zblock,self._N,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._basis,self._L]
 
 
@@ -317,8 +318,8 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_zA_zB_basis(L,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._basis,self._L]
 
 
@@ -334,8 +335,8 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_p_basis(L,pblock,self._N,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._basis,self._L]
 
 
@@ -351,7 +352,7 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_z_basis(L,self._basis)
 
-			self._basis = self._basis[:self._Ns]
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._basis,self._L]
 
 		elif type(zAblock) is int:
@@ -365,7 +366,7 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_zA_basis(L,self._basis)
 
-			self._basis = self._basis[:self._Ns]
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._basis,self._L]
 
 
@@ -380,7 +381,7 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_zB_basis(L,self._basis)
 
-			self._basis = self._basis[:self._Ns]
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._basis,self._L]
 				
 		elif type(pzblock) is int:
@@ -394,8 +395,8 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_pz_basis(L,pzblock,self._N,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._basis,self._L]
 	
 		elif type(kblock) is int:
@@ -410,19 +411,58 @@ class basis1d(basis):
 			else:
 				self._Ns = _cn.make_t_basis(L,kblock,a,self._N,self._basis)
 
-			self._N = self._N[:self._Ns]
-			self._basis = self._basis[:self._Ns]
+			self._N.resize((self._Ns,))
+			self._basis.resize((self._Ns,))
 			self._op_args=[self._N,self._basis,self._L]
 
 		else: 
 			if type(Nup) is int:
-				self._basis = _cn.make_m_basis(L,Nup,self._Ns)
+				self._basis = _np.empty((self._Ns,),dtype=_np.uint32)
+				_cn.make_m_basis(L,Nup,self._Ns,self._basis)
 			else:
 				self._Ns = 2**L
 				self._basis = _np.arange(0,2**L,1,dtype=_np.uint32)
 			self._op_args=[self._basis]
 
 
+
+	def append(self,other):
+		if not isinstance(other,basis1d):
+			raise TypeError("can only append basis1d object to another")
+		if self._L != other._L:
+			raise ValueError("basis1d appending incompatible system sizes with: {0} and {1}".format(self._L,other._L))
+		if self._blocks != other._blocks:
+			raise ValueError("basis1d appending incompatible blocks: {0} and {1}".format(self._blocks,other._blocks))
+		
+
+		Ns = self._Ns + other._Ns
+
+		if self._conserved == "" or self._conserved == "M":
+			self._op_args=[]
+		else:
+			self._op_args=[self._L]
+
+
+		self._basis.resize((Ns,),refcheck=False)
+		self._basis[self._Ns:] = other._basis[:]
+		arg = _np.argsort(self._basis)
+		self._basis = self._basis[arg]
+
+		self._op_args.insert(0,self._basis)
+
+		if hasattr(self,"_m"):
+			self._m.resize((Ns,),refcheck=False)
+			self._m[self._Ns:] = other._m[:]
+			self._m = self._m[arg]
+			self._op_args.insert(0,self._m)	
+
+		if hasattr(self,"_N"):
+			self._N.resize((Ns,),refcheck=False)
+			self._N[self._Ns:] = other._N[:]
+			self._N = self._N[arg]
+			self._op_args.insert(0,self._N)
+
+		self._Ns = Ns
 
 
 	@property
@@ -465,7 +505,6 @@ class basis1d(basis):
 			string += "\n".join([temp.format(i,b) for i,b in enumerate(self._basis)])
 
 		return string 
-
 
 
 
@@ -960,6 +999,7 @@ def ncr(n, r):
 # this function calculates n choose r used to find the total number of basis states when the magnetization is conserved.
 	r = min(r, n-r)
 	if r == 0: return 1
+	elif r < 0: return 0 
 	numer = reduce(_op.mul, xrange(n, n-r, -1))
 	denom = reduce(_op.mul, xrange(1, r+1))
 	return numer//denom

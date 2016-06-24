@@ -84,8 +84,8 @@ def make_m_t_pz_basis(int L, int Nup, int pzblock, int kblock, int a, _np.ndarra
 
 def make_t_pz_basis(int L, int pzblock,int kblock,int a, _np.ndarray[NP_INT8_t,ndim=1] N, _np.ndarray[NP_INT8_t,ndim=1] m, _np.ndarray[{np_basis_type}_t,ndim=1] basis):
 	cdef double k = 2.0*_np.pi*kblock*a/L
-	cdef {c_basis_type} Ns,s
-	cdef int sigma,sigma_i,sigma_f
+	cdef unsigned long long s
+	cdef int Ns,sigma,sigma_i,sigma_f
 	cdef NP_INT8_t r_temp,r,mpz
 	cdef _np.ndarray[NP_INT8_t,ndim=1] R = _np.zeros(2,dtype=NP_INT8)
 	
