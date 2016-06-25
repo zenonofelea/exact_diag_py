@@ -906,6 +906,15 @@ def check_getvec(L,a=1,sparse=True):
 				getvec(L,kblock=k,Nup=Nup,zblock=j,a=a,sparse=sparse)
 
 
+L=10
+
+for a in xrange(1,L):
+	print L/(2*a) 
+	print
+	if L%a == 0:
+		for kblock in xrange(L/a):
+			b = basis1d(L,kblock=kblock,a=a)
+			print a,kblock,L/a-kblock,b.Ns
 
 
 #check_m(4)

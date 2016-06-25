@@ -6,6 +6,8 @@ from numpy import array,asarray
 from numpy import right_shift,left_shift,invert,bitwise_and,bitwise_or
 from numpy import cos,sin,exp,pi
 from numpy.linalg import norm
+from basis1d_Ns import spin_basis_1d_Ns
+
 
 import scipy.sparse as _sm
 
@@ -162,6 +164,8 @@ class basis1d(basis):
 			else: self._conserved = "T & P & Z"
 			self._blocks["pzblock"] = pblock*zblock
 
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
+
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8) # normalisation*sigma
 			self._m=_np.empty(self._basis.shape,dtype=_np.int16) #m = mp + (L+1)mz + (L+1)^2c; Anders' paper
@@ -181,7 +185,7 @@ class basis1d(basis):
 			if self._conserved: self._conserved += " & T & ZA & ZB"
 			else: self._conserved = "T & ZA & ZB"
 			self._blocks["zblock"] = zAblock*zBblock
-			
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]			
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
@@ -200,7 +204,7 @@ class basis1d(basis):
 			self._k=2*(_np.pi)*a*kblock/L
 			if self._conserved: self._conserved += " & T & PZ"
 			else: self._conserved = "T & PZ"
-			self._Ns = int(_np.ceil(self._Ns*a*(2)/float(L_m))) # estimate fraction of basis needed for sector.
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
@@ -219,6 +223,8 @@ class basis1d(basis):
 			self._k=2*(_np.pi)*a*kblock/L
 			if self._conserved: self._conserved += " & T & P"
 			else: self._conserved = "T & P"
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
+
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
@@ -237,6 +243,8 @@ class basis1d(basis):
 			self._k=2*(_np.pi)*a*kblock/L
 			if self._conserved: self._conserved += " & T & Z"
 			else: self._conserved = "T & Z"
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
+
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
@@ -256,6 +264,8 @@ class basis1d(basis):
 			self.k=2*(_np.pi)*a*kblock/L
 			if self._conserved: self._conserved += " & T & ZA"
 			else: self._conserved = "T & ZA"
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
+
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
@@ -274,6 +284,8 @@ class basis1d(basis):
 			self.k=2*(_np.pi)*a*kblock/L
 			if self._conserved: self._conserved += " & T & ZB"
 			else: self._conserved = "T & ZB"
+
+			self._Ns = spin_basis_1d_Ns[(L,a,Nup,kblock)]
 
 			self._basis=_np.empty((self._Ns,),dtype=_np.uint32)
 			self._N=_np.empty(self._basis.shape,dtype=_np.int8)
